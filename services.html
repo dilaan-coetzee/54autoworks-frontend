@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Services - 54 Autoworks</title>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* (Your existing CSS here) */
+        :root {
+            --primary-dark: #121212;
+            --primary-blue: #2962FF;
+            --accent-purple: #9C27B0;
+            --text-light: #E0E0E0;
+            --gradient-3: linear-gradient(to right, #2962FF, #9C27B0);
+            --gradient-team: linear-gradient(to bottom, #1A1A1A, #333333);
+            --shadow-light: rgba(0, 0, 0, 0.2);
+            --shadow-dark: rgba(0, 0, 0, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        body {
+            background: var(--primary-dark);
+            color: var(--text-light);
+            overflow-x: hidden;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            background: #222;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #2962FF, #9C27B0);
+            border-radius: 4px;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 20px 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(25, 25, 25, 0.95);
+            backdrop-filter: blur(15px);
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .nav-logo {
+            height: 50px;
+            transition: transform 0.3s ease;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+        }
+
+        .nav-links a {
+            color: var(--text-light);
+            text-decoration: none;
+            font-weight: 500;
+            position: relative;
+            padding: 5px 0;
+            transition: all 0.3s ease;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 3px;
+            background: var(--gradient-3);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .hero {
+            position: relative;
+            height: 60vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: var(--text-light);
+            background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('servicesimage.png');
+            background-size: cover;
+            background-position: center 30%;
+            background-repeat: no-repeat;
+        }
+
+        .hero-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            margin-top: -5vh; /* Move heading up */
+        }
+
+        .hero-content h1 {
+            font-size: 3rem;
+            color: #FFFFFF;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
+            margin-bottom: 20px;
+        }
+
+        .services-section {
+            padding: 100px 50px;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+        }
+
+        .service-item {
+            background: linear-gradient(135deg, rgba(41, 98, 255, 0.1), rgba(156, 39, 176, 0.1));
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 8px 20px rgba(41, 98, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .service-item:hover {
+            transform: translateY(-15px);
+            box-shadow: 0 12px 35px rgba(156, 39, 176, 0.4);
+        }
+
+        .service-item img {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            margin-bottom: 30px;
+        }
+
+        .service-item h3 {
+            font-size: 2rem;
+            color: #FFFFFF;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
+            margin-bottom: 20px;
+        }
+
+        .service-item p {
+            font-size: 1.2rem;
+            color: #E0E0E0;
+            line-height: 1.8;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        footer {
+            padding: 50px;
+            background: #121212;
+            text-align: center;
+        }
+
+        .footer-logo {
+            height: 60px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            nav {
+                padding: 15px 20px;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .services-section {
+                padding: 60px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html"><img src="images/logo.png" alt="54 Autoworks" class="nav-logo"></a>
+        <div class="nav-links">
+            <a href="about.html">About</a>
+            <a href="services.html">Services</a>
+            <a href="shop.html">Shop</a>
+            <a href="contact.html">Contact Us</a>
+        </div>
+    </nav>
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Services</h1>
+        </div>
+    </section>
+    <section class="services-section">
+        <div class="about-content">
+            <div class="services-grid">
+                <div class="service-item" data-aos="fade-up">
+                    <img src="images/crankhub.jpg" alt="Upgraded Crankhubs">
+                    <h3>Upgraded Crankhubs</h3>
+                    <p>Enhance engine safety with our keyed crank hub upgrade, reducing slip risk and damage.</p>
+                </div>
+                <div class="service-item" data-aos="fade-up" data-aos-delay="100">
+                    <img src="images/turbo_kit.jpg" alt="Full Frame Turbo Kits">
+                    <h3>Full Frame Turbo Kits</h3>
+                    <p>Boost power with our top-mount single turbo kits, complete with turbo and wastegate.</p>
+                </div>
+                <div class="service-item" data-aos="fade-up" data-aos-delay="200">
+                    <img src="images/downpipes.jpg" alt="BMW Downpipes Install">
+                    <h3>BMW Downpipes Install</h3>
+                    <p>Increase power and torque with catless downpipes, allowing freer exhaust flow.</p>
+                </div>
+                <div class="service-item" data-aos="fade-up" data-aos-delay="300">
+                    <img src="images/injectors.jpg" alt="N54/N55 Injector Replacement and Coding">
+                    <h3>N54/N55 Injector Coding</h3>
+                    <p>Replace injectors with recent models, ensuring compatibility and proper function.</p>
+                </div>
+                <div class="service-item" data-aos="fade-up" data-aos-delay="400">
+                    <img src="images/valve_cover.jpg" alt="Valve Cover and Valve Cover Gasket Replacement">
+                    <h3>Valve Cover Replacement</h3>
+                    <p>Prevent leaks and issues with a fresh, genuine BMW valve cover replacement.</p>
+                </div>
+                <div class="service-item" data-aos="fade-up" data-aos-delay="500">
+                    <img src="images/water_pump.jpg" alt="Water Pump and Thermostat Replacement">
+                    <h3>Water Pump & Thermostat</h3>
+                    <p>Maintain engine cooling and efficiency with water pump and thermostat replacement.</p>
+                </div>
+                <div class="service-item" data-aos="fade-up" data-aos-delay="600">
+                    <img src="images/oil_pan_gasket.jpg" alt="BMW Oil Pan Gasket">
+                    <h3>BMW Oil Pan Gasket</h3>
+                    <p>Address common oil leaks with oil pan gasket replacement.</p>
+                </div>
+                <div class="service-item" data-aos="fade-up" data-aos-delay="700">
+                    <img src="images/high_pressure_fuel_pump.jpg" alt="High Pressure Fuel Pump Upgrade/Replacement">
+                    <h3>High Pressure Fuel Pump</h3>
+                    <p>Resolve HPFP issues to prevent limp mode and reliability concerns.</p>
+                </div>
+                <div class="service-item" data-aos="fade-up" data-aos-delay="800">
+                    <img src="images/oil_filter_housing_gasket.jpg" alt="BMW Oil Filter Housing Gasket Replacement">
+                    <h3>Oil Filter Housing Gasket</h3>
+                    <p>Replace worn seals to prevent leaks and maintain engine integrity.</p>
+                </div>
+                <div class="service-item" data-aos="fade-up" data-aos-delay="900">
+                    <img src="images/low_pressure_fuel_pump.jpg" alt="Low Pressure Fuel Pump Replacement">
+                    <h3>Low Pressure Fuel Pump</h3>
+                    <p>Restore fuel flow with low-pressure fuel pump and sender assembly replacement.</p>
+                </div>
+                <div class="service-item" data-aos="fade-up" data-aos-delay="1000">
+                    <img src="images/port_injection_kits.jpg" alt="Port Injection Kits">
+                    <h3>Port Injection Kits</h3>
+                    <p>Enhance fueling for E85 or high-power setups with port injection kits.</p>
+                </div>
+                <div class="service-item" data-aos="fade-up" data-aos-delay="1100">
+                    <img src="images/rod_bearing_replacement.jpg" alt="Rod Bearing Replacement">
+                    <h3>Rod Bearing Replacement</h3>
+                    <p>Address rod bearing wear to maintain engine health and longevity.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    <footer>
+        <a href="index.html"><img src="images/logo.png" alt="54 Autoworks" class="footer-logo"></a>
+        <p>&copy; 2024 54 Autoworks. All rights reserved.</p>
+    </footer>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script>
+        AOS.init({
+            duration: 1200,
+            once: true,
+        });
+
+        gsap.from(".nav-logo", {
+            duration: 1.5,
+            y: -50,
+            opacity: 0,
+            ease: "power4.out",
+        });
+
+        gsap.from(".nav-links a", {
+            duration: 1,
+            opacity: 0,
+            y: -20,
+            ease: "power3.out",
+        });
+
+        window.addEventListener('scroll', () => {
+            const nav = document.querySelector('nav');
+            if (window.scrollY > 50) {
+                nav.style.padding = '15px 50px';
+                nav.style.background = 'rgba(25, 25, 25, 0.98)';
+            } else {
+                nav.style.padding = '20px 50px';
+                nav.style.background = 'rgba(25, 25, 25, 0.95)';
+            }
+        });
+
+        document.querySelectorAll('.service-item').forEach(item => {
+            item.addEventListener('mouseenter', () => {
+                gsap.to(item, {
+                    duration: 0.3,
+                    y: -15,
+                    boxShadow: '0 12px 35px rgba(156, 39, 176, 0.4)',
+                    ease: "power2.out",
+                });
+            });
+
+            item.addEventListener('mouseleave', () => {
+                gsap.to(item, {
+                    duration: 0.3,
+                    y: 0,
+                    boxShadow: '0 8px 20px rgba(41, 98, 255, 0.2)',
+                    ease: "power2.out",
+                });
+            });
+        });
+    </script>
+</body>
+</html>

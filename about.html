@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us - 54 Autoworks</title>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-dark: #121212;
+            --primary-blue: #2962FF;
+            --accent-purple: #9C27B0;
+            --text-light: #E0E0E0;
+            --gradient-3: linear-gradient(to right, #2962FF, #9C27B0);
+            --gradient-team: linear-gradient(to bottom, #1A1A1A, #333333);
+            --shadow-light: rgba(0, 0, 0, 0.2);
+            --shadow-dark: rgba(0, 0, 0, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        body {
+            background: var(--primary-dark);
+            color: var(--text-light);
+            overflow-x: hidden;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            background: #222;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #2962FF, #9C27B0);
+            border-radius: 4px;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 20px 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(25, 25, 25, 0.95);
+            backdrop-filter: blur(15px);
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .nav-logo {
+            height: 50px;
+            transition: transform 0.3s ease;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+        }
+
+        .nav-links a {
+            color: var(--text-light);
+            text-decoration: none;
+            font-weight: 500;
+            position: relative;
+            padding: 5px 0;
+            transition: all 0.3s ease;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 3px;
+            background: var(--gradient-3);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .hero {
+            position: relative;
+            height: 60vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: var(--text-light);
+            background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('image.png');
+            background-size: contain;
+            background-position: center bottom;
+            background-repeat: no-repeat;
+        }
+
+        .hero-content {
+            display: none;
+        }
+
+        .about-header {
+            display: none;
+        }
+
+        .about-content {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 80px 20px;
+            text-align: center;
+        }
+
+        .about-content h2 {
+            font-size: 2.8rem;
+            margin-bottom: 40px;
+            color: white;
+            text-shadow: 2px 2px 4px var(--shadow-dark);
+        }
+
+        .about-content p {
+            font-size: 1.15rem;
+            line-height: 1.9;
+            margin-bottom: 40px;
+            text-shadow: 1px 1px 2px var(--shadow-dark);
+        }
+
+        .team-section {
+            background: linear-gradient(to bottom, #9C27B0, #2962FF, #121212);
+            padding: 100px 50px;
+        }
+
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+        }
+
+        .team-member {
+            background: linear-gradient(to bottom, rgba(255, 25, 25, 0.05), rgba(255, 25, 25, 0.1));
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 5px 15px var(--shadow-light);
+        }
+
+        .team-member:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 30px var(--shadow-dark);
+        }
+
+        .team-member img {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px var(--shadow-light);
+        }
+
+        .team-member h3 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            color: white;
+            text-shadow: 1px 1px 2px var(--shadow-dark);
+        }
+
+        .team-member p {
+            font-size: 1.1rem;
+            text-shadow: 1px 1px 2px var(--shadow-dark);
+        }
+
+        footer {
+            padding: 50px;
+            background: #121212;
+            text-align: center;
+        }
+
+        .footer-logo {
+            height: 60px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            nav {
+                padding: 15px 20px;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .about-content, .team-section {
+                padding: 60px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html"><img src="images/logo.png" alt="54 Autoworks" class="nav-logo"></a>
+        <div class="nav-links">
+            <a href="about.html">About</a>
+            <a href="services.html">Services</a>
+            <a href="shop.html">Shop</a>
+            <a href="contact.html">Contact Us</a>
+        </div>
+    </nav>
+    <section class="hero">
+        <div class="hero-content">
+        </div>
+    </section>
+    <section class="about-content">
+        <h2 data-aos="fade-up">Our Story</h2>
+        <p data-aos="fade-up" data-aos-delay="200">At 54 Autoworks, we're driven by a relentless pursuit of BMW perfection. Our journey began with a vision to redefine automotive performance, blending cutting-edge technology with artisanal craftsmanship.</p>
+        <p data-aos="fade-up" data-aos-delay="300">Our team, a collective of seasoned technicians and visionary fabricators, pours their heart into every project. We specialize in custom turbo solutions, bespoke interior enhancements, and performance upgrades that transcend expectations.</p>
+        <p data-aos="fade-up" data-aos-delay="400">We believe in building more than just cars; we forge lasting relationships with our clients, understanding their unique aspirations and translating them into automotive masterpieces.</p>
+        <p data-aos="fade-up" data-aos-delay="500">Join us in our quest to elevate the BMW driving experience. At 54 Autoworks, your dream becomes our mission, and every detail is a testament to our unwavering commitment to excellence.</p>
+    </section>
+    <section class="team-section">
+        <div class="about-content">
+            <h2 data-aos="fade-up">Meet The Team</h2>
+            <div class="team-grid">
+                <div class="team-member" data-aos="fade-up">
+                    <img src="https://picsum.photos/180/180?random=10" alt="Dilaan Coetzee">
+                    <h3>Dilaan Coetzee</h3>
+                    <p>Lead Technician</p>
+                </div>
+                <div class="team-member" data-aos="fade-up" data-aos-delay="200">
+                    <img src="https://picsum.photos/180/180?random=11" alt="Ryan Shehab">
+                    <h3>Ryan Shehab</h3>
+                    <p>Fabrication Specialist</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    <footer>
+        <a href="index.html"><img src="images/logo.png" alt="54 Autoworks" class="footer-logo"></a>
+        <p>&copy; 2024 54 Autoworks. All rights reserved.</p>
+    </footer>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script>
+        AOS.init({
+            duration: 1200,
+            once: true,
+        });
+
+        gsap.from(".nav-logo", {
+            duration: 1.5,
+            y: -50,
+            opacity: 0,
+            ease: "power4.out",
+        });
+
+        gsap.from(".nav-links a", {
+            duration: 1,
+            opacity: 0,
+            y: -20,
+            ease: "power3.out",
+        });
+
+        window.addEventListener('scroll', () => {
+            const nav = document.querySelector('nav');
+            if (window.scrollY > 50) {
+                nav.style.padding = '15px 50px';
+                nav.style.background = 'rgba(25, 25, 25, 0.98)';
+            } else {
+                nav.style.padding = '20px 50px';
+                nav.style.background = 'rgba(25, 25, 25, 0.95)';
+            }
+        });
+
+        document.querySelectorAll('.team-member').forEach(member => {
+            member.addEventListener('mouseenter', () => {
+                gsap.to(member, {
+                    duration: 0.3,
+                    y: -10,
+                    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
+                    ease: "power2.out",
+                });
+            });
+
+            member.addEventListener('mouseleave', () => {
+                gsap.to(member, {
+                    duration: 0.3,
+                    y: 0,
+                    boxShadow: '0 5px 15px rgba(0, 0, 0, 0.2)',
+                    ease: "power2.out",
+                });
+            });
+        });
+
+    </script>
+</body>
+</html>

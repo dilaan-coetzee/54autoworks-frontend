@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Cart - 54 Autoworks</title>
+    <link rel="icon" href="/images/favicon.ico" type="image/x-icon">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-dark: #121212;
+            --primary-blue: #2962FF;
+            --accent-purple: #9C27B0;
+            --text-light: #E0E0E0;
+            --gradient-3: linear-gradient(to right, #2962FF, #9C27B0);
+            --shadow-light: rgba(0, 0, 0, 0.2);
+            --shadow-dark: rgba(0, 0, 0, 0.5);
+            --error-red: #ff6b6b;
+            --success-green: #51cf66;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        body {
+            background: var(--primary-dark);
+            color: var(--text-light);
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 20px 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(25, 25, 25, 0.95);
+            backdrop-filter: blur(15px);
+            z-index: 1000;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .nav-logo {
+            height: 50px;
+            transition: transform 0.3s ease;
+        }
+
+        .nav-logo:hover {
+            transform: scale(1.05);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+        }
+
+        .nav-links a {
+            color: var(--text-light);
+            text-decoration: none;
+            font-weight: 500;
+            position: relative;
+            padding: 5px 0;
+            transition: all 0.3s ease;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 3px;
+            background: var(--gradient-3);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .cart-content {
+            max-width: 1000px;
+            margin: 120px auto 40px;
+            padding: 20px;
+            flex: 1;
+        }
+
+        .cart-content h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            color: #FFFFFF;
+            font-size: 2.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: var(--gradient-3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        #cart-items {
+            margin-bottom: 30px;
+            min-height: 200px;
+        }
+
+        .loading-message,
+        .empty-message,
+        .error-message {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .error-message {
+            color: var(--error-red);
+            background: rgba(255, 107, 107, 0.1);
+            border-color: rgba(255, 107, 107, 0.2);
+        }
+
+        .cart-item {
+            background: linear-gradient(135deg, rgba(41, 98, 255, 0.1), rgba(156, 39, 176, 0.1));
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .cart-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(41, 98, 255, 0.2);
+            border-color: rgba(41, 98, 255, 0.3);
+        }
+
+        .cart-item img {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .cart-item:hover img {
+            transform: scale(1.05);
+        }
+
+        .cart-item-details {
+            flex: 1;
+        }
+
+        .cart-item-details h3 {
+            color: #FFFFFF;
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .item-price {
+            color: var(--primary-blue);
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .cart-item-quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .quantity-display {
+            font-size: 1.1rem;
+            color: var(--text-light);
+            margin: 0 10px;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .quantity-button {
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .quantity-button:hover {
+            background: var(--accent-purple);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);
+        }
+
+        .remove-button {
+            background: var(--error-red);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .remove-button:hover {
+            background: #c62828;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(229, 57, 53, 0.3);
+        }
+
+        #cart-total {
+            text-align: right;
+            margin: 30px 0;
+            font-size: 1.6rem;
+            color: #FFFFFF;
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #checkout-button {
+            display: block;
+            width: 100%;
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            padding: 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            text-align: center;
+            font-size: 1.3rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
+            margin-top: 30px;
+        }
+
+        #checkout-button:hover {
+            background: var(--accent-purple);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(156, 39, 176, 0.3);
+        }
+
+        footer {
+            padding: 50px;
+            background: #0a0a0a;
+            text-align: center;
+            margin-top: auto;
+        }
+
+        .footer-logo {
+            height: 60px;
+            margin-bottom: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .footer-logo:hover {
+            transform: scale(1.05);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: var(--primary-blue);
+            animation: spin 1s ease-in-out infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            nav {
+                padding: 15px 20px;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .cart-content {
+                margin-top: 100px;
+                padding: 15px;
+            }
+
+            .cart-item {
+                flex-direction: column;
+                text-align: center;
+                padding: 20px;
+            }
+
+            .cart-item img {
+                width: 100%;
+                max-width: 200px;
+                height: auto;
+            }
+
+            .cart-item-quantity-controls {
+                width: 100%;
+                justify-content: center;
+                margin-top: 20px;
+                flex-wrap: wrap;
+            }
+
+            #cart-total {
+                text-align: center;
+                font-size: 1.4rem;
+            }
+
+            #checkout-button {
+                font-size: 1.1rem;
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html"><img src="images/logo.png" alt="54 Autoworks" class="nav-logo"></a>
+        <div class="nav-links">
+            <a href="about.html">About</a>
+            <a href="services.html">Services</a>
+            <a href="shop.html">Shop</a>
+            <a href="contact.html">Contact Us</a>
+            <a href="cart.html" class="cart-link"><i class="fas fa-shopping-cart"></i> Cart (<span id="cart-count">0</span>)</a>
+        </div>
+    </nav>
+
+    <main class="cart-content">
+        <h1>Your Cart</h1>
+        <div id="cart-items">
+            <div class="loading-message">Loading your cart...</div>
+            <div class="empty-message" style="display: none;">Your cart is empty. <a href="shop.html" style="color: var(--primary-blue);">Continue shopping</a></div>
+            <div class="error-message" style="display: none;"></div>
+        </div>
+        <div id="cart-total"></div>
+        <a href="checkout.html" id="checkout-button" style="display: none;">Proceed to Checkout</a>
+    </main>
+
+    <footer>
+        <a href="index.html"><img src="images/logo.png" alt="54 Autoworks" class="footer-logo"></a>
+        <p>&copy; 2024 54Autoworks. All rights reserved.</p> <!-- Corrected text -->
+    </footer>
+
+    <script>
+        // Constants and State
+        const apiBaseUrl = 'https://54autoworks-proxy.onrender.com/api';
+        let wooCartToken = localStorage.getItem('wooCartToken') || null;
+        let exchangeRates = { USD: 1, ZAR: 19.00 }; // Default, will be updated by API fetch
+        let currentCurrency = localStorage.getItem('selectedCurrency') || 'USD';
+        console.log("Cart page initialized with currentCurrency:", currentCurrency);
+
+        // DOM Elements
+        const cartItemsContainer = document.getElementById('cart-items');
+        const cartTotalContainer = document.getElementById('cart-total');
+        const checkoutButton = document.getElementById('checkout-button');
+        const cartCountSpan = document.getElementById('cart-count');
+        const loadingMessage = cartItemsContainer.querySelector('.loading-message');
+        const emptyMessage = cartItemsContainer.querySelector('.empty-message');
+        const errorMessage = cartItemsContainer.querySelector('.error-message');
+
+        // --- Global Error Handling ---
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('UNHANDLED PROMISE REJECTION:', event.reason);
+            showCartError(`An unexpected error occurred: ${event.reason.message || event.reason}`);
+            event.preventDefault();
+        });
+
+        window.addEventListener('error', (event) => {
+            console.error('UNCAUGHT ERROR:', event.error || event.message);
+            showCartError(`An unexpected error occurred: ${event.error?.message || event.message || 'Unknown error'}`);
+            event.preventDefault();
+        });
+        // --- End Global Error Handling ---
+
+        // --- Message Display (for cart page specific errors/messages) ---
+        function showCartError(message) {
+            hideLoadingMessage();
+            emptyMessage.style.display = 'none';
+            errorMessage.textContent = `Error: ${message}`;
+            errorMessage.style.display = 'block';
+            cartItemsContainer.innerHTML = ''; // Clear actual items
+            cartTotalContainer.innerHTML = '';
+            checkoutButton.style.display = 'none';
+            console.error('Cart Error:', message);
+        }
+
+        // --- Currency Conversion Setup ---
+        async function fetchExchangeRates() {
+            try {
+                console.log("Cart: Fetching exchange rates...");
+                const response = await fetch(`${apiBaseUrl}/exchange-rates`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                exchangeRates = await response.json();
+                console.log("Cart: Exchange rates fetched:", exchangeRates);
+            } catch (error) {
+                console.error("Cart: Error fetching exchange rates:", error);
+                // Fallback to hardcoded rates if API fails
+                exchangeRates = { USD: 1, ZAR: 19.00 }; 
+                showCartError(`Failed to load exchange rates: ${error.message}. Using default rates.`);
+            }
+        }
+
+        function convertPriceForDisplay(price, productCurrencyCodeFromWC) { 
+            const numericPrice = parseFloat(price);
+            if (isNaN(numericPrice)) {
+                console.error('Invalid price for conversion in convertPriceForDisplay:', price);
+                return 0;
+            }
+
+            // Normalize price from WooCommerce (which often sends integers for decimals)
+            const priceInBaseUnits = numericPrice / 100; 
+
+            // We are now explicitly assuming the raw price from WooCommerce is in ZAR,
+            // regardless of what product.prices?.currency_code says, because we know
+            // your products were entered in ZAR and WC doesn't re-value on base currency change.
+            const sourceCurrencyForConversion = 'ZAR'; 
+
+            if (!exchangeRates[sourceCurrencyForConversion]) {
+                console.error(`Invalid source currency code '${sourceCurrencyForConversion}' for conversion. Available rates:`, Object.keys(exchangeRates));
+                return priceInBaseUnits; 
+            }
+            if (!exchangeRates[currentCurrency]) {
+                console.error(`Invalid target currency code '${currentCurrency}' for conversion. Available rates:`, Object.keys(exchangeRates));
+                return priceInBaseUnits; 
+            }
+
+            // Calculate rate from source (ZAR) to target (currentCurrency)
+            const rateFromSourceToTarget = exchangeRates[currentCurrency] / exchangeRates[sourceCurrencyForConversion];
+            
+            return (priceInBaseUnits * rateFromSourceToTarget);
+        }
+
+        // Helper Functions
+        function formatCurrency(amount, currencyCode = 'USD') { 
+            if (typeof amount !== 'number') {
+                amount = parseFloat(amount) || 0;
+            }
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: currencyCode
+            }).format(amount);
+        }
+
+        function showLoadingMessage() {
+            loadingMessage.style.display = 'block';
+            emptyMessage.style.display = 'none';
+            errorMessage.style.display = 'none';
+            cartTotalContainer.innerHTML = '';
+            checkoutButton.style.display = 'none';
+            console.log("Loading message shown.");
+        }
+
+        function hideLoadingMessage() {
+            loadingMessage.style.display = 'none';
+            console.log("Loading message hidden.");
+        }
+
+        function showEmptyCartMessage() {
+            hideLoadingMessage();
+            emptyMessage.style.display = 'block';
+            errorMessage.style.display = 'none';
+            cartItemsContainer.innerHTML = ''; // Clear actual items
+            cartTotalContainer.innerHTML = '<strong>Total: $0.00</strong>';
+            checkoutButton.style.display = 'none';
+            updateCartCountDisplay(0);
+            console.log("Empty cart message shown.");
+        }
+
+        function updateCartCountDisplay(count) {
+            cartCountSpan.textContent = count || 0;
+            localStorage.setItem('wooCartCount', count || 0);
+            console.log("Cart count display updated:", count);
+        }
+
+        function getItemQuantity(itemKey) {
+            const itemElement = document.querySelector(`.cart-item[data-item-key="${itemKey}"]`);
+            const quantitySpan = itemElement?.querySelector('.quantity-display');
+            if (quantitySpan) {
+                const quantityMatch = quantitySpan.textContent.match(/\d+/);
+                return quantityMatch ? parseInt(quantityMatch[0]) : 1;
+            }
+            return 1;
+        }
+
+
+        // Main Cart Functions
+        async function fetchAndDisplayCart() {
+            console.log("fetchAndDisplayCart() called.");
+            showLoadingMessage(); // Always show loading when starting fetch
+
+            try {
+                // First, fetch exchange rates
+                await fetchExchangeRates(); 
+
+                console.log("fetchAndDisplayCart: Fetching cart from proxy...");
+                console.log("fetchAndDisplayCart: Using Cart-Token from localStorage:", wooCartToken);
+
+                const response = await fetch(`${apiBaseUrl}/cart`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cart-Token': wooCartToken || undefined
+                    }
+                });
+                console.log(`fetchAndDisplayCart: Response status from proxy: ${response.status}`);
+
+                if (!response.ok) {
+                    const errorDetails = await response.text();
+                    console.error(`fetchAndDisplayCart: Proxy response not OK. Status: ${response.status}, Body: ${errorDetails}`);
+                    throw new Error(`Failed to fetch cart: ${response.status}. Details: ${errorDetails}`);
+                }
+
+                console.log("fetchAndDisplayCart: Parsing JSON response from proxy...");
+                const responseData = await response.json();
+                console.log("fetchAndDisplayCart: Received responseData from proxy:", responseData);
+                const cartData = responseData.cart;
+                console.log("fetchAndDisplayCart: Extracted cartData from proxy response:", cartData);
+
+                // --- Cart Token Update Logic ---
+                const newCartTokenFromHeaders = response.headers.get('Cart-Token');
+                const receivedCartToken = newCartTokenFromHeaders || responseData.cartToken;
+
+                if (receivedCartToken && receivedCartToken !== wooCartToken) {
+                    wooCartToken = receivedCartToken;
+                    localStorage.setItem('wooCartToken', wooCartToken);
+                    console.log('fetchAndDisplayCart: UPDATED Cart Token in localStorage:', wooCartToken);
+                } else if (!receivedCartToken) {
+                    console.warn('fetchAndDisplayCart: No Cart-Token received in response headers or body. Using existing or null.');
+                } else {
+                    console.log('fetchAndDisplayCart: Cart Token unchanged (received token was same as existing).');
+                }
+                // --- End Cart Token Update Logic ---
+
+
+                if (!cartData || !cartData.items || cartData.items.length === 0) {
+                    console.log("fetchAndDisplayCart: Cart is empty or data is missing items array.");
+                    showEmptyCartMessage(); // Show empty message if cart is empty
+                    return;
+                }
+
+                console.log(`fetchAndDisplayCart: Cart has ${cartData.items.length} items. Displaying cart...`);
+                displayCart(cartData.items, cartData.totals); // Display items if cart is not empty
+                updateCartCountDisplay(cartData.items_count || 0);
+                console.log("fetchAndDisplayCart: Cart displayed, count updated.");
+
+            } catch (error) {
+                console.error('fetchAndDisplayCart: Catch block - Error fetching cart:', error);
+                showCartError(`Failed to load cart: ${error.message}`);
+            }
+            console.log("fetchAndDisplayCart() finished.");
+        }
+
+        function displayCart(cartItems, cartTotals) {
+            console.log("displayCart() called with items:", cartItems, "and totals:", cartTotals);
+            hideLoadingMessage();
+            console.log("displayCart: Clearing cart items container...");
+            cartItemsContainer.innerHTML = ''; // Clear previous items
+            console.log("displayCart: Cart items container cleared.");
+
+            if (!cartItems || cartItems.length === 0) {
+                console.log("displayCart: No items to display, showing empty message.");
+                showEmptyCartMessage();
+                return;
+            }
+
+            cartItems.forEach(item => {
+                console.log("displayCart: Processing item:", item);
+                const itemElement = document.createElement('div');
+                itemElement.className = 'cart-item';
+                itemElement.setAttribute('data-item-key', item.key);
+
+                const quantityToDisplay = typeof item.quantity === 'number' && item.quantity !== null ? item.quantity : 1;
+                console.log(`displayCart: Item "${item.name}" quantity value: ${item.quantity}, Quantity to display: ${quantityToDisplay}`);
+
+                // Get the price from the item (e.g., 665000)
+                const itemRawPrice = item.prices?.price || 0;
+                // Convert it to the currently selected display currency
+                const convertedItemPrice = convertPriceForDisplay(itemRawPrice, item.prices?.currency_code); 
+                console.log(`displayCart: Item price (raw): ${itemRawPrice}, converted: ${convertedItemPrice}`);
+
+
+                console.log(`displayCart: Creating HTML for item "${item.name}"`);
+                itemElement.innerHTML = `
+                    <img src="${item.images?.[0]?.src || 'images/placeholder.jpg'}"
+                         alt="${item.name}"
+                         onerror="this.onerror=null; this.src='images/placeholder.jpg'; console.error('Image failed to load for item:', '${item.name}');">
+                    <div class="cart-item-details">
+                        <h3>${item.name}</h3>
+                        <p class="item-price">${formatCurrency(convertedItemPrice, currentCurrency)}</p>
+                    </div>
+                    <div class="cart-item-quantity-controls">
+                        <span class="quantity-display">Quantity: ${quantityToDisplay}</span>
+                        <button class="quantity-button plus-btn" data-item-key="${item.key}">+</button>
+                        <button class="quantity-button minus-btn" data-item-key="${item.key}">-</button>
+                        <button class="remove-button" data-item-key="${item.key}">Remove</button>
+                    </div>
+                `;
+                console.log(`displayCart: HTML created for item "${item.name}". Appending...`);
+                cartItemsContainer.appendChild(itemElement);
+                console.log(`displayCart: Appended item "${item.name}" to container.`);
+            });
+
+            console.log("displayCart: Finished processing all items.");
+            console.log("displayCart: Updating cart total...");
+            updateCartTotal(cartTotals);
+            console.log("displayCart: Cart total updated. Showing checkout button...");
+            checkoutButton.style.display = 'block';
+            console.log("displayCart: Checkout button shown. Setting up listeners...");
+            setupCartItemListeners();
+            console.log("displayCart: Listeners setup complete.");
+            console.log("displayCart() finished.");
+        }
+
+        function updateCartTotal(cartTotals) {
+            console.log("updateCartTotal() called with totals:", cartTotals);
+            // Get the total price from the cartTotals (e.g., 665000)
+            const totalRawPrice = cartTotals?.total_price || 0;
+            // Convert it to the currently selected display currency
+            const convertedTotalPrice = convertPriceForDisplay(totalRawPrice, cartTotals?.currency_code); 
+
+            const total = formatCurrency(convertedTotalPrice, currentCurrency);
+            cartTotalContainer.innerHTML = `<strong>Total: ${total}</strong>`;
+            console.log(`updateCartTotal: Total displayed as ${total}`);
+        }
+
+        async function updateQuantity(itemKey, isIncrease) {
+            console.log(`updateQuantity called for item ${itemKey}, isIncrease: ${isIncrease}`);
+            try {
+                const currentQuantity = getItemQuantity(itemKey);
+                console.log(`updateQuantity: Current quantity for ${itemKey}: ${currentQuantity}`);
+
+                let newQuantity = isIncrease ? currentQuantity + 1 : currentQuantity - 1;
+
+                if (newQuantity < 1) {
+                    console.log(`updateQuantity: New quantity for ${itemKey} is less than 1 (${newQuantity}). Setting to 1.`);
+                    newQuantity = 1;
+                    // If you want to remove the item when quantity becomes 0,
+                    // uncomment the next line and remove the newQuantity = 1;
+                    // if (!isIncrease && currentQuantity === 1) { await removeItem(itemKey); return; }
+                }
+
+                console.log(`updateQuantity: Calculated new quantity for ${itemKey}: ${newQuantity}`);
+
+                showLoadingMessage();
+
+                console.log("updateQuantity: Sending POST request to /api/cart/update-item");
+                console.log("updateQuantity: Using Cart-Token:", wooCartToken);
+
+                const response = await fetch(`${apiBaseUrl}/cart/update-item`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cart-Token': wooCartToken || ''
+                    },
+                    body: JSON.stringify({
+                        key: itemKey,
+                        quantity: newQuantity
+                    })
+                });
+
+                console.log(`updateQuantity: Response status from /api/cart/update-item: ${response.status}`);
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('updateQuantity: Response not OK:', errorData);
+                    throw new Error(`Failed to update quantity: ${response.status}. Details: ${errorData.message || response.statusText}`);
+                }
+
+                console.log("updateQuantity: Parsing JSON response...");
+                const data = await response.json();
+                console.log('updateQuantity: Successful response data:', data);
+
+                // Update cart token from response body if available
+                if (data.cartToken && data.cartToken !== wooCartToken) {
+                    wooCartToken = data.cartToken;
+                    localStorage.setItem('wooCartToken', wooCartToken);
+                    console.log('updateQuantity: Updated Cart Token from update quantity response:', wooCartToken);
+                } else {
+                     console.warn('updateQuantity: No new Cart-Token received in update quantity response body.');
+                }
+
+                console.log('updateQuantity: Calling fetchAndDisplayCart after successful update. Current wooCartToken:', wooCartToken);
+                await fetchAndDisplayCart();
+                console.log('updateQuantity: fetchAndDisplayCart called after successful quantity update.');
+
+            } catch (error) {
+                console.error('updateQuantity: Catch block - Quantity update error:', error);
+                showCartError(`Failed to update quantity: ${error.message}`);
+                await fetchAndDisplayCart(); // Re-fetch on error to try and sync state
+            }
+            console.log(`updateQuantity finished for item ${itemKey}`);
+        }
+
+        async function removeItem(itemKey) {
+            console.log(`removeItem called for item ${itemKey}`);
+            try {
+                showLoadingMessage();
+
+                console.log("removeItem: Sending POST request to /api/cart/remove-item");
+                console.log("removeItem: Using Cart-Token:", wooCartToken);
+
+                const response = await fetch(`${apiBaseUrl}/cart/remove-item`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cart-Token': wooCartToken || ''
+                    },
+                    body: JSON.stringify({
+                        key: itemKey
+                    })
+                });
+
+                console.log(`removeItem: Response status from /api/cart/remove-item: ${response.status}`);
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('removeItem: Response not OK:', errorData);
+                    throw new Error(`Failed to remove item: ${response.status}. Details: ${errorData.message || response.statusText}`);
+                }
+
+                let data = {};
+                if (response.status !== 204) {
+                    try {
+                        data = await response.json();
+                        console.log('removeItem: Successful response data (if any):', data);
+                    } catch (jsonError) {
+                        console.warn('removeItem: Could not parse JSON from non-204 remove response:', jsonError);
+                        if (!response.ok) {
+                            throw new Error(`Store API remove failed with status ${response.status}`);
+                        }
+                    }
+                } else {
+                    console.log('removeItem: Successful (204 No Content).');
+                }
+
+                // Update cart token from response body if available
+                if (data.cartToken && data.cartToken !== wooCartToken) {
+                    wooCartToken = data.cartToken;
+                    localStorage.setItem('wooCartToken', wooCartToken);
+                    console.log('removeItem: Updated Cart Token from remove item response body:', wooCartToken);
+                } else {
+                    console.warn("removeItem: No new Cart-Token received in remove item response body or headers.");
+                }
+
+                console.log('removeItem: Calling fetchAndDisplayCart after successful removal.');
+                await fetchAndDisplayCart();
+                console.log('removeItem: fetchAndDisplayCart called after successful item removal.');
+
+            } catch (error) {
+                console.error('removeItem: Catch block - Remove item error:', error);
+                showCartError(`Failed to remove item: ${error.message}`);
+                await fetchAndDisplayCart();
+            }
+            console.log(`removeItem finished for item ${itemKey}`);
+        }
+
+        function setupCartItemListeners() {
+            console.log("Setting up listeners for cart item buttons.");
+
+            // Remove existing listeners by replacing elements with clones
+            cartItemsContainer.querySelectorAll('.quantity-button.plus-btn').forEach(button => {
+                const newButton = button.cloneNode(true);
+                button.parentNode.replaceChild(newButton, button);
+                newButton.addEventListener('click', () => updateQuantity(newButton.dataset.itemKey, true));
+            });
+
+            cartItemsContainer.querySelectorAll('.quantity-button.minus-btn').forEach(button => {
+                const newButton = button.cloneNode(true);
+                button.parentNode.replaceChild(newButton, button);
+                newButton.addEventListener('click', () => updateQuantity(newButton.dataset.itemKey, false));
+            });
+
+            cartItemsContainer.querySelectorAll('.remove-button').forEach(button => {
+                const newButton = button.cloneNode(true);
+                button.parentNode.replaceChild(newButton, button);
+                newButton.addEventListener('click', () => removeItem(newButton.dataset.itemKey));
+            });
+            console.log("Listeners setup complete.");
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("DOMContentLoaded fired on cart.html.");
+            // Set initial cart count from localStorage
+            updateCartCountDisplay(localStorage.getItem('wooCartCount') || 0);
+            // Crucial: Fetch and display the cart when the page loads
+            fetchAndDisplayCart(); 
+        });
+    </script>
+</body>
+</html>

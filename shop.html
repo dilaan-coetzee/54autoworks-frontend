@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop - 54 Autoworks</title>
+    <link rel="icon" href="images/favicon.ico" type="image/x-icon">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-dark: #121212;
+            --primary-blue: #2962FF;
+            --accent-purple: #9C27B0;
+            --text-light: #E0E0E0;
+            --gradient-3: linear-gradient(to right, #2962FF, #9C27B0);
+            --shadow-light: rgba(0, 0, 0, 0.2);
+            --shadow-dark: rgba(0, 0, 0, 0.5);
+            --error-red: #ff6b6b;
+            --success-green: #51cf66;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        body {
+            background: var(--primary-dark);
+            color: var(--text-light);
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 20px 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(25, 25, 25, 0.95);
+            backdrop-filter: blur(15px);
+            z-index: 1000;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .nav-logo {
+            height: 50px;
+            transition: transform 0.3s ease;
+        }
+
+        .nav-logo:hover {
+            transform: scale(1.05);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+        }
+
+        .nav-links a {
+            color: var(--text-light);
+            text-decoration: none;
+            font-weight: 500;
+            position: relative;
+            padding: 5px 0;
+            transition: all 0.3s ease;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 3px;
+            background: var(--gradient-3);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        /* --- Shop Page Specific Styles --- */
+        .shop-content {
+            max-width: 1200px;
+            margin: 120px auto 40px; /* Adjust margin-top for fixed nav */
+            padding: 20px;
+            flex: 1; /* Allows content to expand and push footer down */
+        }
+
+        /* Styling for the main heading on the shop page, matching cart.html */
+        .shop-content h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            color: #FFFFFF; /* Fallback color */
+            font-size: 2.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: var(--gradient-3); /* Apply the gradient */
+            -webkit-background-clip: text; /* Clip background to text */
+            -webkit-text-fill-color: transparent; /* Make text transparent to show background */
+            background-clip: text; /* Standard property */
+            color: transparent; /* Standard property */
+        }
+
+        /* Container for filters and currency selector */
+        .filter-and-currency-container {
+            display: flex;
+            justify-content: center; /* Center the entire container */
+            align-items: center;
+            margin-bottom: 40px;
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+            gap: 20px; /* Space between filter buttons and currency selector */
+            position: relative; /* For absolute positioning of currency selector */
+        }
+
+        .product-filters {
+            display: flex;
+            justify-content: center; /* Center buttons within this flex item */
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-button {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .filter-button:hover, .filter-button.active {
+            background: var(--primary-blue);
+            border-color: var(--primary-blue);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(41, 98, 255, 0.3);
+        }
+
+        .currency-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: absolute; /* Position absolutely to break it out of normal flow */
+            right: 0; /* Align to the right of the parent container */
+        }
+
+        .currency-selector label {
+            font-size: 1.1rem;
+            color: var(--text-light);
+        }
+
+        .currency-selector select {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            appearance: none; /* Remove default dropdown arrow */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%20viewBox%3D%220%200%20292.4%20292.4%22%3E%3Cpath%20fill%3D%22%23E0E0E0%22%20d%3D%22M287%2C197.9c-3.2%2C3.2-7.5%2C4.9-12.2%2C4.9H17.6c-4.7%2C0-9-1.7-12.2-4.9c-6.7-6.7-6.7-17.6%2C0-24.3L134%2C6.1c6.7-6.7%2C17.6-6.7%2C24.3%2C0l116.9%2C116.9C293.7%2C180.3%2C293.7%2C191.2%2C287%2C197.9z%22%2F%3E%3C%2Fsvg%3E');
+            background-repeat: no-repeat;
+            background-position: right 10px top 50%;
+            background-size: 12px auto;
+            padding-right: 30px; /* Make space for the custom arrow */
+        }
+
+        .currency-selector select:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 2px rgba(41, 98, 255, 0.5);
+        }
+
+        /* Product Grid Styles */
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            padding: 20px 0;
+        }
+
+        .product-card {
+            background: linear-gradient(135deg, rgba(41, 98, 255, 0.1), rgba(156, 39, 176, 0.1));
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(41, 98, 255, 0.4);
+        }
+
+        .product-card img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .product-card:hover img {
+            transform: scale(1.03);
+        }
+
+        .product-info {
+            padding: 20px;
+            flex-grow: 1; /* Allows info section to take available space */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .product-info h3 {
+            font-size: 1.4rem;
+            margin-bottom: 10px;
+            color: #FFFFFF;
+            line-height: 1.3;
+        }
+
+        .product-price {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--primary-blue);
+            margin-bottom: 15px;
+            margin-top: auto; /* Pushes price to the bottom */
+            text-align: center; /* ALIGN PRICE TO CENTER */
+        }
+
+        .add-to-cart-btn {
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+            width: 100%;
+            display: block; /* Ensure it takes full width */
+            margin-top: 15px; /* Space above button */
+        }
+
+        .add-to-cart-btn:hover {
+            background: var(--accent-purple);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(156, 39, 176, 0.4);
+        }
+
+        /* Messages */
+        .message-box {
+            position: fixed;
+            top: 80px; /* Below nav */
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-weight: 500;
+            z-index: 1000;
+            display: none; /* Hidden by default */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            animation: fadeInOut 5s forwards;
+            min-width: 300px;
+            text-align: center;
+        }
+
+        .message-box.success {
+            background-color: var(--success-green);
+            color: var(--primary-dark);
+        }
+
+        .message-box.error {
+            background-color: var(--error-red);
+            color: white;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+            10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+        }
+
+        footer {
+            padding: 50px;
+            background: #0a0a0a;
+            text-align: center;
+            margin-top: auto;
+        }
+
+        .footer-logo {
+            height: 60px;
+            margin-bottom: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .footer-logo:hover {
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 768px) {
+            nav {
+                padding: 15px 20px;
+            }
+
+            .nav-links {
+                display: none; /* Hide for mobile to simplify nav */
+            }
+
+            .shop-content {
+                margin-top: 100px;
+                padding: 15px;
+            }
+
+            .shop-content h1 {
+                font-size: 2rem;
+            }
+
+            .filter-and-currency-container {
+                flex-direction: column;
+                align-items: center; /* Center items when stacked on mobile */
+                position: static; /* Remove absolute positioning on mobile */
+            }
+
+            .product-filters {
+                width: 100%; /* Take full width when stacked */
+                justify-content: center; /* Center buttons when stacked */
+            }
+
+            .filter-button {
+                width: auto; /* Allow buttons to size naturally */
+            }
+
+            .currency-selector {
+                width: 100%; /* Take full width when stacked */
+                justify-content: center; /* Center selector when stacked */
+                position: static; /* Remove absolute positioning on mobile */
+                margin-top: 20px; /* Add space between filters and currency selector on mobile */
+            }
+
+            .product-grid {
+                grid-template-columns: 1fr; /* Stack products on small screens */
+            }
+
+            .product-card img {
+                height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html"><img src="images/logo.png" alt="54 Autoworks" class="nav-logo"></a>
+        <div class="nav-links">
+            <a href="about.html">About</a>
+            <a href="services.html">Services</a>
+            <a href="shop.html">Shop</a>
+            <a href="contact.html">Contact Us</a>
+            <a href="cart.html" class="cart-link"><i class="fas fa-shopping-cart"></i> Cart (<span id="cart-count">0</span>)</a>
+        </div>
+    </nav>
+
+    <main class="shop-content">
+        <h1>Our Products</h1>
+
+        <div class="filter-and-currency-container">
+            <div class="product-filters">
+                <button class="filter-button active" data-category="n54">N54</button>
+                <button class="filter-button" data-category="n55">N55</button>
+                <button class="filter-button" data-category="s55">S55</button>
+            </div>
+
+            <div class="currency-selector">
+                <label for="currency-select">Currency:</label>
+                <select id="currency-select">
+                    <option value="USD">USD</option>
+                    <option value="ZAR">ZAR</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="product-list" class="product-grid">
+            <!-- Products will be loaded here by JavaScript -->
+            <div class="loading-message" style="text-align: center; grid-column: 1 / -1;">Loading products...</div>
+            <div class="error-message" style="display: none; text-align: center; grid-column: 1 / -1; color: var(--error-red);"></div>
+        </div>
+    </main>
+
+    <div id="message-box" class="message-box"></div>
+
+    <footer>
+        <a href="index.html"><img src="images/logo.png" alt="54 Autoworks" class="footer-logo"></a>
+        <p>&copy; 2024 54Autoworks. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Constants and State
+        const apiBaseUrl = 'https://54autoworks-proxy.onrender.com/api';
+        let wooCartToken = localStorage.getItem('wooCartToken') || null;
+        let products = []; // Store all fetched products
+        let exchangeRates = { USD: 1, ZAR: 19.00 }; // Default, will be updated by API
+        let currentCurrency = localStorage.getItem('selectedCurrency') || 'USD';
+
+        // DOM Elements
+        const productListContainer = document.getElementById('product-list');
+        const cartCountSpan = document.getElementById('cart-count');
+        const currencySelect = document.getElementById('currency-select');
+        const filterButtons = document.querySelectorAll('.filter-button');
+        const messageBox = document.getElementById('message-box');
+        const loadingMessage = productListContainer.querySelector('.loading-message');
+        const errorMessage = productListContainer.querySelector('.error-message');
+
+        // --- Global Error Handling ---
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('UNHANDLED PROMISE REJECTION:', event.reason);
+            showMessage(`An unexpected error occurred: ${event.reason.message || event.reason}`, 'error');
+            event.preventDefault();
+        });
+
+        window.addEventListener('error', (event) => {
+            console.error('UNCAUGHT ERROR:', event.error || event.message);
+            showMessage(`An unexpected error occurred: ${event.error?.message || event.message || 'Unknown error'}`, 'error');
+            event.preventDefault();
+        });
+        // --- End Global Error Handling ---
+
+        // --- Message Display ---
+        function showMessage(message, type) {
+            messageBox.textContent = message;
+            messageBox.className = `message-box ${type}`;
+            messageBox.style.display = 'block';
+            setTimeout(() => {
+                messageBox.style.display = 'none';
+            }, 4000); // Hide after 4 seconds
+        }
+
+        // --- Currency Conversion Setup ---
+        async function fetchExchangeRates() {
+            try {
+                console.log("Fetching exchange rates...");
+                const response = await fetch(`${apiBaseUrl}/exchange-rates`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                exchangeRates = await response.json();
+                console.log("Exchange rates fetched:", exchangeRates);
+            } catch (error) {
+                console.error("Error fetching exchange rates:", error);
+                // Fallback to hardcoded rates if API fails
+                exchangeRates = { USD: 1, ZAR: 19.00 }; 
+                showMessage(`Failed to load exchange rates: ${error.message}. Using default rates.`, 'error');
+            }
+        }
+
+        function convertPrice(price, productCurrencyCodeFromWC) { 
+            const numericPrice = parseFloat(price);
+            if (isNaN(numericPrice)) {
+                console.error('Invalid price for conversion:', price);
+                return 0;
+            }
+
+            // Normalize price from WooCommerce (which often sends integers for decimals)
+            const priceInBaseUnits = numericPrice / 100; 
+
+            // We are now explicitly assuming the raw price from WooCommerce is in ZAR,
+            // regardless of what product.prices?.currency_code says, because we know
+            // your products were entered in ZAR and WC doesn't re-value on base currency change.
+            const sourceCurrencyForConversion = 'ZAR'; 
+
+            if (!exchangeRates[sourceCurrencyForConversion]) {
+                console.error(`Invalid source currency code '${sourceCurrencyForConversion}' for conversion. Available rates:`, Object.keys(exchangeRates));
+                return priceInBaseUnits; 
+            }
+            if (!exchangeRates[currentCurrency]) {
+                console.error(`Invalid target currency code '${currentCurrency}' for conversion. Available rates:`, Object.keys(exchangeRates));
+                return priceInBaseUnits; 
+            }
+
+            // Calculate rate from source (ZAR) to target (currentCurrency)
+            // Example: To convert ZAR to USD: (USD_RATE / ZAR_RATE) = (1 / 17.5855)
+            // Example: To convert ZAR to ZAR: (ZAR_RATE / ZAR_RATE) = (17.5855 / 17.5855) = 1
+            const rateFromSourceToTarget = exchangeRates[currentCurrency] / exchangeRates[sourceCurrencyForConversion];
+            
+            return (priceInBaseUnits * rateFromSourceToTarget);
+        }
+
+        function formatCurrency(amount, currencyCode = 'USD') {
+            if (typeof amount !== 'number') {
+                amount = parseFloat(amount) || 0;
+            }
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: currencyCode
+            }).format(amount);
+        }
+
+        // --- Cart Functions ---
+        async function initializeShop() {
+            loadingMessage.style.display = 'block';
+            errorMessage.style.display = 'none';
+            productListContainer.innerHTML = ''; // Clear existing content
+
+            try {
+                // Fetch exchange rates first
+                await fetchExchangeRates();
+
+                // Then initialize cart session and fetch products
+                const initResponse = await fetch(`${apiBaseUrl}/init`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cart-Token': wooCartToken || undefined
+                    }
+                });
+
+                if (!initResponse.ok) {
+                    const errorDetails = await initResponse.text();
+                    console.error('Failed to initialize cart session:', initResponse.status, errorDetails);
+                    throw new Error(`Failed to initialize cart session: ${initResponse.status}. Details: ${errorDetails}`);
+                }
+
+                const initData = await initResponse.json();
+                const newCartToken = initResponse.headers.get('Cart-Token') || initData.cartToken;
+
+                if (newCartToken && newCartToken !== wooCartToken) {
+                    wooCartToken = newCartToken;
+                    localStorage.setItem('wooCartToken', wooCartToken);
+                    console.log('UPDATED Cart Token in localStorage:', wooCartToken);
+                } else if (!newCartToken) {
+                    console.warn('No new Cart-Token received in init response. Using existing or null.');
+                } else {
+                    console.log('Cart Token unchanged (received token was same as existing).');
+                }
+
+                updateCartCountDisplay(initData.cart?.items_count || 0);
+
+                // Fetch products
+                const productsResponse = await fetch(`${apiBaseUrl}/products`);
+                if (!productsResponse.ok) {
+                    const errorDetails = await productsResponse.text();
+                    console.error('Failed to fetch products:', productsResponse.status, errorDetails);
+                    throw new Error(`Failed to fetch products: ${productsResponse.status}. Details: ${errorDetails}`);
+                }
+
+                products = await productsResponse.json();
+                displayProducts(products);
+
+            } catch (error) {
+                console.error('Error initializing shop:', error);
+                errorMessage.textContent = `Error loading shop: ${error.message}`;
+                errorMessage.style.display = 'block';
+                loadingMessage.style.display = 'none';
+            } finally {
+                loadingMessage.style.display = 'none';
+            }
+        }
+
+        function displayProducts(productsToDisplay) {
+            productListContainer.innerHTML = ''; // Clear previous products
+            if (productsToDisplay.length === 0) {
+                productListContainer.innerHTML = '<p style="text-align: center; grid-column: 1 / -1;">No products found for this category.</p>';
+                return;
+            }
+
+            productsToDisplay.forEach(product => {
+                const productCard = document.createElement('div');
+                productCard.className = 'product-card';
+
+                // Get the raw price from the product (e.g., 665000)
+                const productRawPrice = product.prices?.price || 0;
+                // Convert it to the currently selected display currency
+                const convertedPrice = convertPrice(productRawPrice, product.prices?.currency_code); 
+
+                productCard.innerHTML = `
+                    <img src="${product.images?.[0]?.src || 'images/placeholder.jpg'}" 
+                         alt="${product.name}"
+                         onerror="this.onerror=null; this.src='images/placeholder.jpg'; console.error('Image failed to load for product:', '${product.name}');">
+                    <div class="product-info">
+                        <h3>${product.name}</h3>
+                        <p class="product-price">${formatCurrency(convertedPrice, currentCurrency)}</p>
+                        <button class="add-to-cart-btn" data-product-id="${product.id}">Add to Cart</button>
+                    </div>
+                `;
+                productListContainer.appendChild(productCard);
+            });
+            setupAddToCartListeners();
+        }
+
+        async function addToCart(productId) {
+            console.log(`Attempting to add product ${productId} to cart.`);
+            try {
+                const response = await fetch(`${apiBaseUrl}/cart/add`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cart-Token': wooCartToken || undefined // Send existing token
+                    },
+                    body: JSON.stringify({
+                        productId: productId,
+                        quantity: 1
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('Failed to add to cart:', response.status, errorData);
+                    throw new Error(`Could not add item to cart: ${errorData.message || response.statusText}`);
+                }
+
+                const data = await response.json();
+                const newCartToken = response.headers.get('Cart-Token') || data.cartToken;
+                if (newCartToken && newCartToken !== wooCartToken) {
+                    wooCartToken = newCartToken;
+                    localStorage.setItem('wooCartToken', wooCartToken);
+                    console.log('UPDATED Cart Token after add to cart:', wooCartToken);
+                }
+
+                updateCartCountDisplay(data.items_count || 0);
+                showMessage('Product added to cart!', 'success');
+                console.log('Product added to cart:', data);
+
+            } catch (error) {
+                console.error('Error adding to cart:', error);
+                showMessage(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        function updateCartCountDisplay(count) {
+            cartCountSpan.textContent = count || 0;
+            localStorage.setItem('wooCartCount', count || 0);
+        }
+
+        // --- Event Listeners ---
+        function setupAddToCartListeners() {
+            document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+                // Remove existing listeners to prevent duplicates
+                const newButton = button.cloneNode(true);
+                button.parentNode.replaceChild(newButton, button);
+                newButton.addEventListener('click', () => addToCart(newButton.dataset.productId));
+            });
+        }
+
+        currencySelect.addEventListener('change', (event) => {
+            currentCurrency = event.target.value;
+            localStorage.setItem('selectedCurrency', currentCurrency);
+            displayProducts(products); // Re-display products with new currency
+        });
+
+        filterButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                const category = button.dataset.category;
+                const filteredProducts = products.filter(product =>
+                    product.categories.some(cat => cat.slug === category)
+                );
+                displayProducts(filteredProducts);
+            });
+        });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set initial currency selector value
+            currencySelect.value = currentCurrency;
+            initializeShop();
+        });
+    </script>
+</body>
+</html>
