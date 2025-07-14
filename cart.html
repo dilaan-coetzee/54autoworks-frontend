@@ -381,10 +381,10 @@
         <p>&copy; 2024 54Autoworks. All rights reserved.</p> <!-- Corrected text -->
     </footer>
 
-    <script src="scripts/proxy.js"></script> <!-- NEW: Import the proxy script FIRST -->
     <script>
         // Constants and State
-        // const apiBaseUrl = 'https://54autoworks-proxy-new.vercel.app/api'; // Removed, using makeProxiedRequest
+        // IMPORTANT: Replace with your actual Vercel proxy URL
+        const apiBaseUrl = 'https://54autoworks-proxy-new.vercel.app/api'; 
         let wooCartToken = localStorage.getItem('wooCartToken') || null;
         let exchangeRates = { USD: 1, ZAR: 19.00 }; // Default, will be updated by API fetch
         let currentCurrency = localStorage.getItem('selectedCurrency') || 'USD';
@@ -429,9 +429,12 @@
         async function fetchExchangeRates() {
             try {
                 console.log("Cart: Fetching exchange rates...");
-                // Use makeProxiedRequest instead of direct fetch
-                const ratesData = await makeProxiedRequest('GET', '/api/exchange-rates');
-                exchangeRates = ratesData; // makeProxiedRequest already parses JSON
+                // Reverted to direct fetch
+                const response = await fetch(`${apiBaseUrl}/exchange-rates`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                exchangeRates = await response.json();
                 console.log("Cart: Exchange rates fetched:", exchangeRates);
             } catch (error) {
                 console.error("Cart: Error fetching exchange rates:", error);
@@ -536,28 +539,43 @@
                 console.log("fetchAndDisplayCart: Fetching cart from proxy...");
                 console.log("fetchAndDisplayCart: Using Cart-Token from localStorage:", wooCartToken);
 
-                // Use makeProxiedRequest for fetching cart
-                const responseData = await makeProxiedRequest('GET', '/api/cart', null, wooCartToken);
-                
+                // Reverted to direct fetch
+                const response = await fetch(`${apiBaseUrl}/cart`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cart-Token': wooCartToken || undefined
+                    }
+                });
+                console.log(`fetchAndDisplayCart: Response status from proxy: ${response.status}`);
+
+                if (!response.ok) {
+                    const errorDetails = await response.text();
+                    console.error(`fetchAndDisplayCart: Proxy response not OK. Status: ${response.status}, Body: ${errorDetails}`);
+                    throw new Error(`Failed to fetch cart: ${response.status}. Details: ${errorDetails}`);
+                }
+
+                console.log("fetchAndDisplayCart: Parsing JSON response from proxy...");
+                const responseData = await response.json();
                 console.log("fetchAndDisplayCart: Received responseData from proxy:", responseData);
                 const cartData = responseData.cart;
                 console.log("fetchAndDisplayCart: Extracted cartData from proxy response:", cartData);
 
-                // makeProxiedRequest already handles setting wooCartToken in localStorage internally
-                // so we just need to update the local variable if it changed
-                wooCartToken = localStorage.getItem('wooCartToken') || null;
-                if (responseData.cartToken && responseData.cartToken !== wooCartToken) {
-                    // This case should be handled by makeProxiedRequest, but a redundant check is fine.
-                    wooCartToken = responseData.cartToken;
+                // --- Cart Token Update Logic ---
+                const newCartTokenFromHeaders = response.headers.get('Cart-Token');
+                const newWooSessionTokenFromHeaders = response.headers.get('woocommerce-session');
+                const receivedCartToken = newCartTokenFromHeaders || newWooSessionTokenFromHeaders || responseData.cartToken;
+
+                if (receivedCartToken && receivedCartToken !== wooCartToken) {
+                    wooCartToken = receivedCartToken;
                     localStorage.setItem('wooCartToken', wooCartToken);
-                    console.log('fetchAndDisplayCart: UPDATED Cart Token in localStorage (from responseData):', wooCartToken);
-                } else if (!responseData.cartToken && wooCartToken) {
-                    console.warn('fetchAndDisplayCart: No new Cart-Token received in responseData, but existing token found. Using existing.');
-                } else if (responseData.cartToken && responseData.cartToken === wooCartToken) {
-                    console.log('fetchAndDisplayCart: Cart Token unchanged (received token was same as existing).');
+                    console.log('fetchAndDisplayCart: UPDATED Cart Token in localStorage:', wooCartToken);
+                } else if (!receivedCartToken) {
+                    console.warn('fetchAndDisplayCart: No Cart-Token received in response headers or body. Using existing or null.');
                 } else {
-                    console.warn('fetchAndDisplayCart: No Cart-Token received in responseData and no existing token found.');
+                    console.log('fetchAndDisplayCart: Cart Token unchanged (received token was same as existing).');
                 }
+                // --- End Cart Token Update Logic ---
 
 
                 if (!cartData || !cartData.items || cartData.items.length === 0) {
@@ -674,16 +692,37 @@
                 console.log("updateQuantity: Sending POST request to /api/cart/update-item");
                 console.log("updateQuantity: Using Cart-Token:", wooCartToken);
 
-                // Use makeProxiedRequest for updating quantity
-                const data = await makeProxiedRequest('POST', '/api/cart/update-item', {
-                    key: itemKey,
-                    quantity: newQuantity
-                }, wooCartToken); // Pass wooCartToken to the proxy function
+                // Reverted to direct fetch
+                const response = await fetch(`${apiBaseUrl}/cart/update-item`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cart-Token': wooCartToken || ''
+                    },
+                    body: JSON.stringify({
+                        key: itemKey,
+                        quantity: newQuantity
+                    })
+                });
 
-                console.log('updateQuantity: Successful response data:', data);
+                console.log(`updateQuantity: Response status from /api/cart/update-item: ${response.status}`);
 
-                // makeProxiedRequest already updates localStorage.wooCartToken internally
-                wooCartToken = localStorage.getItem('wooCartToken') || null; // Ensure local var is updated
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('updateQuantity: Response not OK:', errorData);
+                    throw new Error(`Failed to update quantity: ${response.status}. Details: ${errorData.message || response.statusText}`);
+                }
+
+                const data = await response.json();
+                // Get Cart-Token from response headers first, then from body if available
+                const newCartToken = response.headers.get('Cart-Token') || response.headers.get('woocommerce-session') || data.cartToken;
+                if (newCartToken && newCartToken !== wooCartToken) {
+                    wooCartToken = newCartToken;
+                    localStorage.setItem('wooCartToken', wooCartToken);
+                    console.log('updateQuantity: Updated Cart Token from update quantity response:', wooCartToken);
+                } else {
+                     console.warn('updateQuantity: No new Cart-Token received in update quantity response body.');
+                }
 
                 console.log('updateQuantity: Calling fetchAndDisplayCart after successful update. Current wooCartToken:', wooCartToken);
                 await fetchAndDisplayCart();
@@ -705,22 +744,50 @@
                 console.log("removeItem: Sending POST request to /api/cart/remove-item");
                 console.log("removeItem: Using Cart-Token:", wooCartToken);
 
-                // Use makeProxiedRequest for removing item
-                const response = await makeProxiedRequest('POST', '/api/cart/remove-item', {
-                    key: itemKey
-                }, wooCartToken); // Pass wooCartToken to the proxy function
+                // Reverted to direct fetch
+                const response = await fetch(`${apiBaseUrl}/cart/remove-item`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cart-Token': wooCartToken || ''
+                    },
+                    body: JSON.stringify({
+                        key: itemKey
+                    })
+                });
 
                 console.log(`removeItem: Response status from /api/cart/remove-item: ${response.status}`);
 
-                // makeProxiedRequest handles 204 No Content, so we just check its status
-                if (response.status === 204) {
-                    console.log('removeItem: Successful (204 No Content).');
-                } else {
-                    console.log('removeItem: Successful response data (if any):', response); // response here is already parsed data
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('removeItem: Response not OK:', errorData);
+                    throw new Error(`Failed to remove item: ${response.status}. Details: ${errorData.message || response.statusText}`);
                 }
 
-                // makeProxiedRequest already updates localStorage.wooCartToken internally
-                wooCartToken = localStorage.getItem('wooCartToken') || null; // Ensure local var is updated
+                let data = {};
+                if (response.status !== 204) {
+                    try {
+                        data = await response.json();
+                        console.log('removeItem: Successful response data (if any):', data);
+                    } catch (jsonError) {
+                        console.warn('removeItem: Could not parse JSON from non-204 remove response:', jsonError);
+                        if (!response.ok) {
+                            throw new Error(`Store API remove failed with status ${response.status}`);
+                        }
+                    }
+                } else {
+                    console.log('removeItem: Successful (204 No Content).');
+                }
+
+                // Get Cart-Token from response headers first, then from body if available
+                const newCartToken = response.headers.get('Cart-Token') || response.headers.get('woocommerce-session') || data.cartToken;
+                if (newCartToken && newCartToken !== wooCartToken) {
+                    wooCartToken = newCartToken;
+                    localStorage.setItem('wooCartToken', wooCartToken);
+                    console.log('removeItem: Updated Cart Token from remove item response:', wooCartToken);
+                } else {
+                    console.warn("removeItem: No new Cart-Token received in remove item response body or headers.");
+                }
 
                 console.log('removeItem: Calling fetchAndDisplayCart after successful removal.');
                 await fetchAndDisplayCart();
