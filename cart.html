@@ -545,7 +545,8 @@
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Cart-Token': wooCartToken || undefined
+                        'Cart-Token': wooCartToken || undefined,
+                        'Nonce': wooApiNonce || undefined // NEW: Send nonce from frontend for cart fetch
                     }
                 });
                 console.log(`fetchAndDisplayCart: Response status from proxy: ${response.status}`);
@@ -578,7 +579,7 @@
                 }
                 // --- End Cart Token Update Logic ---
 
-                // NEW: Store nonce from initData if available (cart endpoint also returns it)
+                // NEW: Store nonce from responseData if available (cart endpoint also returns it)
                 if (responseData.nonce && responseData.nonce !== wooApiNonce) {
                     wooApiNonce = responseData.nonce;
                     localStorage.setItem('wooApiNonce', wooApiNonce);
