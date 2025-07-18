@@ -424,6 +424,7 @@
         let products = []; // Store all fetched products
         let exchangeRates = { USD: 1, ZAR: 19.00 }; // Default, will be updated by API
         let currentCurrency = localStorage.getItem('selectedCurrency') || 'USD';
+        let wooApiNonce = localStorage.getItem('wooApiNonce') || null; // NEW: Declare wooApiNonce
 
         // DOM Elements
         const productListContainer = document.getElementById('product-list');
@@ -558,6 +559,14 @@
                     console.log('Cart Token unchanged (received token was same as existing).');
                 }
 
+                // NEW: Store nonce from initData if available
+                if (initData.nonce && initData.nonce !== wooApiNonce) {
+                    wooApiNonce = initData.nonce;
+                    localStorage.setItem('wooApiNonce', wooApiNonce);
+                    console.log('UPDATED Nonce in localStorage:', wooApiNonce);
+                }
+
+
                 updateCartCountDisplay(initData.cart?.items_count || 0);
 
                 // Fetch products
@@ -619,7 +628,8 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Cart-Token': wooCartToken || undefined // Send existing token
+                        'Cart-Token': wooCartToken || undefined, // Send existing token
+                        'Nonce': wooApiNonce || undefined // NEW: Send nonce from frontend
                     },
                     body: JSON.stringify({
                         productId: productId,

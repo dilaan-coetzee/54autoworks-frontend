@@ -786,46 +786,4 @@
                     localStorage.setItem('wooCartToken', wooCartToken);
                     console.log('removeItem: Updated Cart Token from remove item response:', wooCartToken);
                 } else {
-                    console.warn("removeItem: No new Cart-Token received in remove item response body or headers.");
-                }
-
-                console.log('removeItem: Calling fetchAndDisplayCart after successful removal.');
-                await fetchAndDisplayCart();
-                console.log('removeItem: fetchAndDisplayCart called after successful item removal.');
-
-            } catch (error) {
-                console.error('removeItem: Catch block - Remove item error:', error);
-                showCartError(`Failed to remove item: ${error.message}`);
-                await fetchAndDisplayCart(); // Re-fetch on error to try and sync state
-            }
-            console.log(`removeItem finished for item ${itemKey}`);
-        }
-
-        // --- Event Listeners ---
-        function setupCartItemListeners() {
-            document.querySelectorAll('.quantity-button.plus-btn').forEach(button => {
-                const newButton = button.cloneNode(true);
-                button.parentNode.replaceChild(newButton, button);
-                newButton.addEventListener('click', () => updateQuantity(newButton.dataset.itemKey, true));
-            });
-
-            document.querySelectorAll('.quantity-button.minus-btn').forEach(button => {
-                const newButton = button.cloneNode(true);
-                button.parentNode.replaceChild(newButton, button);
-                newButton.addEventListener('click', () => updateQuantity(newButton.dataset.itemKey, false));
-            });
-
-            document.querySelectorAll('.remove-button').forEach(button => {
-                const newButton = button.cloneNode(true);
-                button.parentNode.replaceChild(newButton, button);
-                newButton.addEventListener('click', () => removeItem(newButton.dataset.itemKey));
-            });
-        }
-
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchAndDisplayCart();
-        });
-    </script>
-</body>
-</html>
+                    console.warn("removeItem: No new Cart-Token received in remove item response body or head
