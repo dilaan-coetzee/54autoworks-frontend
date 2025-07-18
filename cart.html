@@ -388,6 +388,7 @@
         let wooCartToken = localStorage.getItem('wooCartToken') || null;
         let exchangeRates = { USD: 1, ZAR: 19.00 }; // Default, will be updated by API fetch
         let currentCurrency = localStorage.getItem('selectedCurrency') || 'USD';
+        let wooApiNonce = localStorage.getItem('wooApiNonce') || null; // NEW: Declare wooApiNonce
         console.log("Cart page initialized with currentCurrency:", currentCurrency);
 
         // DOM Elements
@@ -577,6 +578,13 @@
                 }
                 // --- End Cart Token Update Logic ---
 
+                // NEW: Store nonce from initData if available (cart endpoint also returns it)
+                if (responseData.nonce && responseData.nonce !== wooApiNonce) {
+                    wooApiNonce = responseData.nonce;
+                    localStorage.setItem('wooApiNonce', wooApiNonce);
+                    console.log('fetchAndDisplayCart: UPDATED Nonce in localStorage:', wooApiNonce);
+                }
+
 
                 if (!cartData || !cartData.items || cartData.items.length === 0) {
                     console.log("fetchAndDisplayCart: Cart is empty or data is missing items array.");
@@ -697,7 +705,8 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Cart-Token': wooCartToken || ''
+                        'Cart-Token': wooCartToken || '',
+                        'Nonce': wooApiNonce || undefined // NEW: Send nonce from frontend
                     },
                     body: JSON.stringify({
                         key: itemKey,
@@ -749,7 +758,8 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Cart-Token': wooCartToken || ''
+                        'Cart-Token': wooCartToken || '',
+                        'Nonce': wooApiNonce || undefined // NEW: Send nonce from frontend
                     },
                     body: JSON.stringify({
                         key: itemKey
@@ -786,4 +796,46 @@
                     localStorage.setItem('wooCartToken', wooCartToken);
                     console.log('removeItem: Updated Cart Token from remove item response:', wooCartToken);
                 } else {
-                    console.warn("removeItem: No new Cart-Token received in remove item response body or head
+                    console.warn("removeItem: No new Cart-Token received in remove item response body or headers");
+                }
+
+                console.log('removeItem: Calling fetchAndDisplayCart after successful removal.');
+                await fetchAndDisplayCart();
+                console.log('removeItem: fetchAndDisplayCart called after successful item removal.');
+
+            } catch (error) {
+                console.error('removeItem: Catch block - Remove item error:', error);
+                showCartError(`Failed to remove item: ${error.message}`);
+                await fetchAndDisplayCart(); // Re-fetch on error to try and sync state
+            }
+            console.log(`removeItem finished for item ${itemKey}`);
+        }
+
+        // --- Event Listeners ---
+        function setupCartItemListeners() {
+            document.querySelectorAll('.quantity-button.plus-btn').forEach(button => {
+                const newButton = button.cloneNode(true);
+                button.parentNode.replaceChild(newButton, button);
+                newButton.addEventListener('click', () => updateQuantity(newButton.dataset.itemKey, true));
+            });
+
+            document.querySelectorAll('.quantity-button.minus-btn').forEach(button => {
+                const newButton = button.cloneNode(true);
+                button.parentNode.replaceChild(newButton, button);
+                newButton.addEventListener('click', () => updateQuantity(newButton.dataset.itemKey, false));
+            });
+
+            document.querySelectorAll('.remove-button').forEach(button => {
+                const newButton = button.cloneNode(true);
+                button.parentNode.replaceChild(newButton, button);
+                newButton.addEventListener('click', () => removeItem(newButton.dataset.itemKey));
+            });
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchAndDisplayCart();
+        });
+    </script>
+</body>
+</html>
