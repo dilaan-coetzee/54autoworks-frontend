@@ -90,7 +90,7 @@ app.get('/api/init', async (req, res) => {
             return res.status(response.status).json({ message: data.message || 'Failed to initialize session from WooCommerce', details: data });
         }
         
-        res.json({ cart: data, cartToken: newWooSessionToken || clientCartToken });
+        res.json({ cart: data, cartToken: newWooSessionToken || clientCartToken, nonce: wooApiNonce });
 
     } catch (error) {
         console.error('[PROXY] Error in /api/init:', error.message);
