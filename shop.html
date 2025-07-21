@@ -419,11 +419,17 @@
     <script>
         // Constants and State
         const apiBaseUrl = '/api'; 
+        // Keep these for initial load, but we'll pass direct values to updateCartCountDisplay
         let wooCartToken = localStorage.getItem('wooCartToken') || null;
-        let products = []; // Store all fetched products
-        let exchangeRates = { USD: 1, ZAR: 19.00 }; // Default, will be updated by API
+        let products = []; 
+        let exchangeRates = { USD: 1, ZAR: 19.00 }; 
         let currentCurrency = localStorage.getItem('selectedCurrency') || 'USD';
-        let wooApiNonce = localStorage.getItem('wooApiNonce') || null; // Declare wooApiNonce
+        let wooApiNonce = localStorage.getItem('wooApiNonce') || null; 
+
+        // Initial debug logs for loaded values
+        console.log("Shop: Initial wooCartToken from localStorage:", wooCartToken);
+        console.log("Shop: Initial wooApiNonce from localStorage:", wooApiNonce);
+
 
         // DOM Elements
         const productListContainer = document.getElementById('product-list');
@@ -433,7 +439,7 @@
         const messageBox = document.getElementById('message-box');
         const loadingMessage = productListContainer.querySelector('.loading-message');
         const errorMessage = productListContainer.querySelector('.error-message');
-        const cartNavLink = document.getElementById('cartNavLink'); // NEW: Get cart nav link
+        const cartNavLink = document.getElementById('cartNavLink'); 
 
         // --- Global Error Handling ---
         window.addEventListener('unhandledrejection', (event) => {
@@ -462,15 +468,15 @@
         // --- Currency Conversion Setup ---
         async function fetchExchangeRates() {
             try {
-                console.log("Fetching exchange rates...");
+                console.log("Shop: Fetching exchange rates...");
                 const response = await fetch(`${apiBaseUrl}/exchange-rates`);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 exchangeRates = await response.json();
-                console.log("Exchange rates fetched:", exchangeRates);
+                console.log("Shop: Exchange rates fetched:", exchangeRates);
             } catch (error) {
-                console.error("Error fetching exchange rates:", error);
+                console.error("Shop: Error fetching exchange rates:", error);
                 exchangeRates = { USD: 1, ZAR: 19.00 }; 
                 showMessage(`Failed to load exchange rates: ${error.message}. Using default rates.`, 'error');
             }
@@ -517,53 +523,48 @@
             productListContainer.innerHTML = ''; // Clear existing content
 
             try {
-                // Fetch exchange rates first
                 await fetchExchangeRates();
 
-                // Then initialize cart session and fetch products
                 const initResponse = await fetch(`${apiBaseUrl}/init`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Cart-Token': wooCartToken || undefined // Send existing token
+                        'Cart-Token': wooCartToken || undefined 
                     }
                 });
 
                 if (!initResponse.ok) {
                     const errorDetails = await initResponse.text();
-                    console.error('Failed to initialize cart session:', initResponse.status, errorDetails);
+                    console.error('Shop: Failed to initialize cart session:', initResponse.status, errorDetails);
                     throw new Error(`Failed to initialize cart session: ${initResponse.status}. Details: ${errorDetails}`);
                 }
 
                 const initData = await initResponse.json();
-                // Get Cart-Token from response headers first, then from body if available
                 const newCartToken = initResponse.headers.get('Cart-Token') || initResponse.headers.get('woocommerce-session') || initData.cartToken;
 
                 if (newCartToken && newCartToken !== wooCartToken) {
                     wooCartToken = newCartToken;
                     localStorage.setItem('wooCartToken', wooCartToken);
-                    console.log('Shop: UPDATED Cart Token in localStorage:', wooCartToken);
+                    console.log('Shop: UPDATED Cart Token in localStorage (from init):', wooCartToken);
                 } else if (!newCartToken) {
                     console.warn('Shop: No new Cart-Token received in init response. Using existing or null.');
                 } else {
                     console.log('Shop: Cart Token unchanged (received token was same as existing).');
                 }
 
-                // Store nonce from initData if available
                 if (initData.nonce && initData.nonce !== wooApiNonce) {
                     wooApiNonce = initData.nonce;
                     localStorage.setItem('wooApiNonce', wooApiNonce);
-                    console.log('Shop: UPDATED Nonce in localStorage:', wooApiNonce);
+                    console.log('Shop: UPDATED Nonce in localStorage (from init):', wooApiNonce);
                 }
 
-                // Call updateCartCountDisplay here to set the cart link href on initial load
-                updateCartCountDisplay(initData.cart?.items_count || 0); 
+                // NEW: Pass the actual tokens to updateCartCountDisplay
+                updateCartCountDisplay(initData.cart?.items_count || 0, wooCartToken, wooApiNonce); 
 
-                // Fetch products
                 const productsResponse = await fetch(`${apiBaseUrl}/products`);
                 if (!productsResponse.ok) {
                     const errorDetails = await productsResponse.text();
-                    console.error('Failed to fetch products:', productsResponse.status, errorDetails);
+                    console.error('Shop: Failed to fetch products:', productsResponse.status, errorDetails);
                     throw new Error(`Failed to fetch products: ${productsResponse.status}. Details: ${errorDetails}`);
                 }
 
@@ -571,7 +572,7 @@
                 displayProducts(products);
 
             } catch (error) {
-                console.error('Error initializing shop:', error);
+                console.error('Shop: Error initializing shop:', error);
                 errorMessage.textContent = `Error loading shop: ${error.message}`;
                 errorMessage.style.display = 'block';
                 loadingMessage.style.display = 'none';
@@ -581,7 +582,7 @@
         }
 
         function displayProducts(productsToDisplay) {
-            productListContainer.innerHTML = ''; // Clear previous products
+            productListContainer.innerHTML = ''; 
             if (productsToDisplay.length === 0) {
                 productListContainer.innerHTML = '<p style="text-align: center; grid-column: 1 / -1;">No products found for this category.</p>';
                 return;
@@ -610,14 +611,14 @@
         }
 
         async function addToCart(productId) {
-            console.log(`Attempting to add product ${productId} to cart.`);
+            console.log(`Shop: Attempting to add product ${productId} to cart.`);
             try {
                 const response = await fetch(`${apiBaseUrl}/cart/add`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Cart-Token': wooCartToken || undefined, 
-                        'Nonce': wooApiNonce || undefined // Send nonce from frontend
+                        'Nonce': wooApiNonce || undefined 
                     },
                     body: JSON.stringify({
                         productId: productId,
@@ -627,7 +628,7 @@
 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    console.error('Failed to add to cart:', response.status, errorData);
+                    console.error('Shop: Failed to add to cart:', response.status, errorData);
                     throw new Error(`Could not add item to cart: ${errorData.message || response.statusText}`);
                 }
 
@@ -636,34 +637,35 @@
                 if (newCartToken && newCartToken !== wooCartToken) {
                     wooCartToken = newCartToken;
                     localStorage.setItem('wooCartToken', wooCartToken);
-                    console.log('Shop: UPDATED Cart Token after add to cart:', wooCartToken);
+                    console.log('Shop: UPDATED Cart Token in localStorage (from add to cart):', wooCartToken);
                 }
 
-                updateCartCountDisplay(data.items_count || 0); // Update count and link href
+                // NEW: Pass the actual tokens to updateCartCountDisplay
+                updateCartCountDisplay(data.items_count || 0, wooCartToken, wooApiNonce); 
                 showMessage('Product added to cart!', 'success');
-                console.log('Product added to cart:', data);
+                console.log('Shop: Product added to cart:', data);
 
             } catch (error) {
-                console.error('Error adding to cart:', error);
+                console.error('Shop: Error adding to cart:', error);
                 showMessage(`Error: ${error.message}`, 'error');
             }
         }
 
-        function updateCartCountDisplay(count) {
+        // MODIFIED: Accepts cartToken and nonce as arguments
+        function updateCartCountDisplay(count, currentCartToken, currentNonce) {
             cartCountSpan.textContent = count || 0;
             localStorage.setItem('wooCartCount', count || 0);
 
-            // NEW: Add debug logs before setting href
-            console.log("Shop: updateCartCountDisplay called.");
-            const currentCartTokenForLink = localStorage.getItem('wooCartToken');
-            const currentNonceForLink = localStorage.getItem('wooApiNonce');
-            console.log("Shop: currentCartTokenForLink retrieved:", currentCartTokenForLink);
-            console.log("Shop: currentNonceForLink retrieved:", currentNonceForLink);
+            console.log("Shop: updateCartCountDisplay called with:");
+            console.log("Shop:   count:", count);
+            console.log("Shop:   currentCartToken (passed):", currentCartToken);
+            console.log("Shop:   currentNonce (passed):", currentNonce);
 
-
-            // NEW: Update the cart link with current tokens
             if (cartNavLink) {
-                cartNavLink.href = `cart.html?cartToken=${currentCartTokenForLink || ''}&nonce=${currentNonceForLink || ''}`;
+                // Use the passed arguments directly for the URL
+                const tokenForUrl = currentCartToken || '';
+                const nonceForUrl = currentNonce || '';
+                cartNavLink.href = `cart.html?cartToken=${tokenForUrl}&nonce=${nonceForUrl}`;
                 console.log("Shop: Updated cart nav link href:", cartNavLink.href);
             }
         }
@@ -681,6 +683,8 @@
             currentCurrency = event.target.value;
             localStorage.setItem('selectedCurrency', currentCurrency);
             displayProducts(products); // Re-display products with new currency
+            // Re-update cart link after currency change, using current global tokens
+            updateCartCountDisplay(parseInt(localStorage.getItem('wooCartCount') || 0), wooCartToken, wooApiNonce);
         });
 
         filterButtons.forEach(button => {
@@ -692,6 +696,8 @@
                     product.categories.some(cat => cat.slug === category)
                 );
                 displayProducts(filteredProducts);
+                // Re-update cart link after filter change, using current global tokens
+                updateCartCountDisplay(parseInt(localStorage.getItem('wooCartCount') || 0), wooCartToken, wooApiNonce);
             });
         });
 
