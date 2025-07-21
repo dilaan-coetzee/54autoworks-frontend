@@ -600,14 +600,14 @@
                 const newCartTokenFromCartHeaders = cartResponse.headers.get('woocommerce-session') || cartResponse.headers.get('Cart-Token') || cartDataResponse.cartToken;
                 const newNonceFromCartResponse = cartDataResponse.nonce || cartResponse.headers.get('x-wc-store-api-nonce');
 
-                if (newCartTokenFromCartHeaders && newCartTokenFromCartHeaders !== wooCartToken) {
+                if (newCartTokenFromCartHeaders) {
                     wooCartToken = newCartTokenFromCartHeaders;
                     localStorage.setItem('wooCartToken', wooCartToken);
                     console.log('Cart: UPDATED global wooCartToken (from cart fetch):', wooCartToken);
                 } else {
                     console.warn('Cart: No valid Cart-Token received from cart fetch response. Keeping existing global:', wooCartToken);
                 }
-                if (newNonceFromCartResponse && newNonceFromCartResponse !== wooApiNonce) {
+                if (newNonceFromCartResponse) {
                     wooApiNonce = newNonceFromCartResponse;
                     localStorage.setItem('wooApiNonce', wooApiNonce);
                     console.log('Cart: UPDATED global wooApiNonce (from cart fetch):', wooApiNonce);
