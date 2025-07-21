@@ -542,18 +542,18 @@
                 if (newCartToken && newCartToken !== wooCartToken) {
                     wooCartToken = newCartToken;
                     localStorage.setItem('wooCartToken', wooCartToken);
-                    console.log('UPDATED Cart Token in localStorage:', wooCartToken);
+                    console.log('Shop: UPDATED Cart Token in localStorage:', wooCartToken);
                 } else if (!newCartToken) {
-                    console.warn('No new Cart-Token received in init response. Using existing or null.');
+                    console.warn('Shop: No new Cart-Token received in init response. Using existing or null.');
                 } else {
-                    console.log('Cart Token unchanged (received token was same as existing).');
+                    console.log('Shop: Cart Token unchanged (received token was same as existing).');
                 }
 
                 // Store nonce from initData if available
                 if (initData.nonce && initData.nonce !== wooApiNonce) {
                     wooApiNonce = initData.nonce;
                     localStorage.setItem('wooApiNonce', wooApiNonce);
-                    console.log('UPDATED Nonce in localStorage:', wooApiNonce);
+                    console.log('Shop: UPDATED Nonce in localStorage:', wooApiNonce);
                 }
 
                 // Call updateCartCountDisplay here to set the cart link href on initial load
@@ -636,7 +636,7 @@
                 if (newCartToken && newCartToken !== wooCartToken) {
                     wooCartToken = newCartToken;
                     localStorage.setItem('wooCartToken', wooCartToken);
-                    console.log('UPDATED Cart Token after add to cart:', wooCartToken);
+                    console.log('Shop: UPDATED Cart Token after add to cart:', wooCartToken);
                 }
 
                 updateCartCountDisplay(data.items_count || 0); // Update count and link href
@@ -653,11 +653,17 @@
             cartCountSpan.textContent = count || 0;
             localStorage.setItem('wooCartCount', count || 0);
 
+            // NEW: Add debug logs before setting href
+            console.log("Shop: updateCartCountDisplay called.");
+            const currentCartTokenForLink = localStorage.getItem('wooCartToken');
+            const currentNonceForLink = localStorage.getItem('wooApiNonce');
+            console.log("Shop: currentCartTokenForLink retrieved:", currentCartTokenForLink);
+            console.log("Shop: currentNonceForLink retrieved:", currentNonceForLink);
+
+
             // NEW: Update the cart link with current tokens
             if (cartNavLink) {
-                const currentCartToken = localStorage.getItem('wooCartToken') || '';
-                const currentNonce = localStorage.getItem('wooApiNonce') || '';
-                cartNavLink.href = `cart.html?cartToken=${currentCartToken}&nonce=${currentNonce}`;
+                cartNavLink.href = `cart.html?cartToken=${currentCartTokenForLink || ''}&nonce=${currentNonceForLink || ''}`;
                 console.log("Shop: Updated cart nav link href:", cartNavLink.href);
             }
         }
