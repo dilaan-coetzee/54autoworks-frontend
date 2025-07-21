@@ -383,13 +383,15 @@
 
     <script>
         // Constants and State
-        // IMPORTANT: Replace with your actual Vercel proxy URL
         const apiBaseUrl = '/api'; 
         let wooCartToken = localStorage.getItem('wooCartToken') || null;
-        let exchangeRates = { USD: 1, ZAR: 19.00 }; // Default, will be updated by API fetch
+        let exchangeRates = { USD: 1, ZAR: 19.00 }; 
         let currentCurrency = localStorage.getItem('selectedCurrency') || 'USD';
-        let wooApiNonce = localStorage.getItem('wooApiNonce') || null; // NEW: Declare wooApiNonce
-        console.log("Cart page initialized with currentCurrency:", currentCurrency);
+        let wooApiNonce = localStorage.getItem('wooApiNonce') || null; // Declare wooApiNonce
+
+        // Add these console logs right after initialization to confirm values
+        console.log("Cart page initialized. wooCartToken from localStorage:", wooCartToken); 
+        console.log("Cart page initialized. wooApiNonce from localStorage:", wooApiNonce);
 
         // DOM Elements
         const cartItemsContainer = document.getElementById('cart-items');
@@ -430,7 +432,6 @@
         async function fetchExchangeRates() {
             try {
                 console.log("Cart: Fetching exchange rates...");
-                // Reverted to direct fetch
                 const response = await fetch(`${apiBaseUrl}/exchange-rates`);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -439,7 +440,6 @@
                 console.log("Cart: Exchange rates fetched:", exchangeRates);
             } catch (error) {
                 console.error("Cart: Error fetching exchange rates:", error);
-                // Fallback to hardcoded rates if API fails
                 exchangeRates = { USD: 1, ZAR: 19.00 }; 
                 showCartError(`Failed to load exchange rates: ${error.message}. Using default rates.`);
             }
@@ -452,12 +452,7 @@
                 return 0;
             }
 
-            // Normalize price from WooCommerce (which often sends integers for decimals)
             const priceInBaseUnits = numericPrice / 100; 
-
-            // We are now explicitly assuming the raw price from WooCommerce is in ZAR,
-            // regardless of what product.prices?.currency_code says, because we know
-            // your products were entered in ZAR and WC doesn't re-value on base currency change.
             const sourceCurrencyForConversion = 'ZAR'; 
 
             if (!exchangeRates[sourceCurrencyForConversion]) {
@@ -469,7 +464,6 @@
                 return priceInBaseUnits; 
             }
 
-            // Calculate rate from source (ZAR) to target (currentCurrency)
             const rateFromSourceToTarget = exchangeRates[currentCurrency] / exchangeRates[sourceCurrencyForConversion];
             
             return (priceInBaseUnits * rateFromSourceToTarget);
@@ -531,22 +525,20 @@
         // Main Cart Functions
         async function fetchAndDisplayCart() {
             console.log("fetchAndDisplayCart() called.");
-            showLoadingMessage(); // Always show loading when starting fetch
+            showLoadingMessage(); 
 
             try {
-                // First, fetch exchange rates
                 await fetchExchangeRates(); 
 
-                console.log("fetchAndDisplayCart: Fetching cart from proxy...");
-                console.log("fetchAndDisplayCart: Using Cart-Token from localStorage:", wooCartToken);
+                console.log("fetchAndDisplayCart: Attempting to fetch cart.");
+                console.log("fetchAndDisplayCart: Current wooCartToken before fetch:", wooCartToken); // Crucial debug log
 
-                // Reverted to direct fetch
                 const response = await fetch(`${apiBaseUrl}/cart`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Cart-Token': wooCartToken || undefined,
-                        'Nonce': wooApiNonce || undefined // NEW: Send nonce from frontend for cart fetch
+                        'Cart-Token': wooCartToken || undefined, // Ensure this sends the token
+                        'Nonce': wooApiNonce || undefined // Send nonce from frontend for cart fetch
                     }
                 });
                 console.log(`fetchAndDisplayCart: Response status from proxy: ${response.status}`);
@@ -557,11 +549,8 @@
                     throw new Error(`Failed to fetch cart: ${response.status}. Details: ${errorDetails}`);
                 }
 
-                console.log("fetchAndDisplayCart: Parsing JSON response from proxy...");
                 const responseData = await response.json();
-                console.log("fetchAndDisplayCart: Received responseData from proxy:", responseData);
                 const cartData = responseData.cart;
-                console.log("fetchAndDisplayCart: Extracted cartData from proxy response:", cartData);
 
                 // --- Cart Token Update Logic ---
                 const newCartTokenFromHeaders = response.headers.get('Cart-Token');
@@ -572,14 +561,16 @@
                     wooCartToken = receivedCartToken;
                     localStorage.setItem('wooCartToken', wooCartToken);
                     console.log('fetchAndDisplayCart: UPDATED Cart Token in localStorage:', wooCartToken);
-                } else if (!receivedCartToken) {
-                    console.warn('fetchAndDisplayCart: No Cart-Token received in response headers or body. Using existing or null.');
+                } else if (!receivedCartToken && wooCartToken) { 
+                    console.warn('fetchAndDisplayCart: No new Cart-Token received in response, but existing token found. Using existing.');
+                } else if (!receivedCartToken && !wooCartToken) { 
+                    console.warn('fetchAndDisplayCart: No Cart-Token received in response and no existing token found. Cart might not persist.');
                 } else {
                     console.log('fetchAndDisplayCart: Cart Token unchanged (received token was same as existing).');
                 }
                 // --- End Cart Token Update Logic ---
 
-                // NEW: Store nonce from responseData if available (cart endpoint also returns it)
+                // Store nonce from responseData if available (cart endpoint also returns it)
                 if (responseData.nonce && responseData.nonce !== wooApiNonce) {
                     wooApiNonce = responseData.nonce;
                     localStorage.setItem('wooApiNonce', wooApiNonce);
@@ -589,12 +580,12 @@
 
                 if (!cartData || !cartData.items || cartData.items.length === 0) {
                     console.log("fetchAndDisplayCart: Cart is empty or data is missing items array.");
-                    showEmptyCartMessage(); // Show empty message if cart is empty
+                    showEmptyCartMessage(); 
                     return;
                 }
 
                 console.log(`fetchAndDisplayCart: Cart has ${cartData.items.length} items. Displaying cart...`);
-                displayCart(cartData.items, cartData.totals); // Display items if cart is not empty
+                displayCart(cartData.items, cartData.totals); 
                 updateCartCountDisplay(cartData.items_count || 0);
                 console.log("fetchAndDisplayCart: Cart displayed, count updated.");
 
@@ -627,9 +618,7 @@
                 const quantityToDisplay = typeof item.quantity === 'number' && item.quantity !== null ? item.quantity : 1;
                 console.log(`displayCart: Item "${item.name}" quantity value: ${item.quantity}, Quantity to display: ${quantityToDisplay}`);
 
-                // Get the price from the item (e.g., 665000)
                 const itemRawPrice = item.prices?.price || 0;
-                // Convert it to the currently selected display currency
                 const convertedItemPrice = convertPriceForDisplay(itemRawPrice, item.prices?.currency_code); 
                 console.log(`displayCart: Item price (raw): ${itemRawPrice}, converted: ${convertedItemPrice}`);
 
@@ -668,9 +657,7 @@
 
         function updateCartTotal(cartTotals) {
             console.log("updateCartTotal() called with totals:", cartTotals);
-            // Get the total price from the cartTotals (e.g., 665000)
             const totalRawPrice = cartTotals?.total_price || 0;
-            // Convert it to the currently selected display currency
             const convertedTotalPrice = convertPriceForDisplay(totalRawPrice, cartTotals?.currency_code); 
 
             const total = formatCurrency(convertedTotalPrice, currentCurrency);
@@ -689,9 +676,6 @@
                 if (newQuantity < 1) {
                     console.log(`updateQuantity: New quantity for ${itemKey} is less than 1 (${newQuantity}). Setting to 1.`);
                     newQuantity = 1;
-                    // If you want to remove the item when quantity becomes 0,
-                    // uncomment the next line and remove the newQuantity = 1;
-                    // if (!isIncrease && currentQuantity === 1) { await removeItem(itemKey); return; }
                 }
 
                 console.log(`updateQuantity: Calculated new quantity for ${itemKey}: ${newQuantity}`);
@@ -701,13 +685,12 @@
                 console.log("updateQuantity: Sending POST request to /api/cart/update-item");
                 console.log("updateQuantity: Using Cart-Token:", wooCartToken);
 
-                // Reverted to direct fetch
                 const response = await fetch(`${apiBaseUrl}/cart/update-item`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Cart-Token': wooCartToken || '',
-                        'Nonce': wooApiNonce || undefined // NEW: Send nonce from frontend
+                        'Nonce': wooApiNonce || undefined // Send nonce from frontend
                     },
                     body: JSON.stringify({
                         key: itemKey,
@@ -724,7 +707,6 @@
                 }
 
                 const data = await response.json();
-                // Get Cart-Token from response headers first, then from body if available
                 const newCartToken = response.headers.get('Cart-Token') || response.headers.get('woocommerce-session') || data.cartToken;
                 if (newCartToken && newCartToken !== wooCartToken) {
                     wooCartToken = newCartToken;
@@ -741,7 +723,7 @@
             } catch (error) {
                 console.error('updateQuantity: Catch block - Quantity update error:', error);
                 showCartError(`Failed to update quantity: ${error.message}`);
-                await fetchAndDisplayCart(); // Re-fetch on error to try and sync state
+                await fetchAndDisplayCart(); 
             }
             console.log(`updateQuantity finished for item ${itemKey}`);
         }
@@ -754,13 +736,12 @@
                 console.log("removeItem: Sending POST request to /api/cart/remove-item");
                 console.log("removeItem: Using Cart-Token:", wooCartToken);
 
-                // Reverted to direct fetch
                 const response = await fetch(`${apiBaseUrl}/cart/remove-item`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Cart-Token': wooCartToken || '',
-                        'Nonce': wooApiNonce || undefined // NEW: Send nonce from frontend
+                        'Nonce': wooApiNonce || undefined // Send nonce from frontend
                     },
                     body: JSON.stringify({
                         key: itemKey
@@ -790,7 +771,6 @@
                     console.log('removeItem: Successful (204 No Content).');
                 }
 
-                // Get Cart-Token from response headers first, then from body if available
                 const newCartToken = response.headers.get('Cart-Token') || response.headers.get('woocommerce-session') || data.cartToken;
                 if (newCartToken && newCartToken !== wooCartToken) {
                     wooCartToken = newCartToken;
@@ -807,7 +787,7 @@
             } catch (error) {
                 console.error('removeItem: Catch block - Remove item error:', error);
                 showCartError(`Failed to remove item: ${error.message}`);
-                await fetchAndDisplayCart(); // Re-fetch on error to try and sync state
+                await fetchAndDisplayCart(); 
             }
             console.log(`removeItem finished for item ${itemKey}`);
         }
