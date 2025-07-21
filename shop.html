@@ -419,16 +419,17 @@
     <script>
         // Constants and State
         const apiBaseUrl = '/api'; 
-        // Keep these for initial load, but we'll pass direct values to updateCartCountDisplay
-        let wooCartToken = localStorage.getItem('wooCartToken') || null;
+        // Initialize these to null. They will be explicitly set by initializeShop after the API call.
+        let wooCartToken = null; 
+        let wooApiNonce = null; 
+
         let products = []; 
         let exchangeRates = { USD: 1, ZAR: 19.00 }; 
         let currentCurrency = localStorage.getItem('selectedCurrency') || 'USD';
-        let wooApiNonce = localStorage.getItem('wooApiNonce') || null; 
-
-        // Initial debug logs for loaded values
-        console.log("Shop: Initial wooCartToken from localStorage:", wooCartToken);
-        console.log("Shop: Initial wooApiNonce from localStorage:", wooApiNonce);
+        
+        // Initial debug logs for loaded values (these will likely be null/undefined initially)
+        console.log("Shop: Initial global wooCartToken:", wooCartToken);
+        console.log("Shop: Initial global wooApiNonce:", wooApiNonce);
 
 
         // DOM Elements
@@ -520,16 +521,19 @@
         async function initializeShop() {
             loadingMessage.style.display = 'block';
             errorMessage.style.display = 'none';
-            productListContainer.innerHTML = ''; // Clear existing content
+            productListContainer.innerHTML = ''; 
 
             try {
                 await fetchExchangeRates();
+
+                // Get existing token from localStorage for the initial init call
+                let initialCartToken = localStorage.getItem('wooCartToken') || undefined;
 
                 const initResponse = await fetch(`${apiBaseUrl}/init`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Cart-Token': wooCartToken || undefined 
+                        'Cart-Token': initialCartToken // Send existing token
                     }
                 });
 
@@ -540,25 +544,27 @@
                 }
 
                 const initData = await initResponse.json();
-                const newCartToken = initResponse.headers.get('Cart-Token') || initResponse.headers.get('woocommerce-session') || initData.cartToken;
+                const receivedCartToken = initResponse.headers.get('Cart-Token') || initResponse.headers.get('woocommerce-session') || initData.cartToken;
+                const receivedNonce = initData.nonce;
 
-                if (newCartToken && newCartToken !== wooCartToken) {
-                    wooCartToken = newCartToken;
+                // Explicitly update global variables and localStorage
+                if (receivedCartToken) {
+                    wooCartToken = receivedCartToken;
                     localStorage.setItem('wooCartToken', wooCartToken);
-                    console.log('Shop: UPDATED Cart Token in localStorage (from init):', wooCartToken);
-                } else if (!newCartToken) {
-                    console.warn('Shop: No new Cart-Token received in init response. Using existing or null.');
+                    console.log('Shop: UPDATED global wooCartToken (from init):', wooCartToken);
                 } else {
-                    console.log('Shop: Cart Token unchanged (received token was same as existing).');
+                    console.warn('Shop: No Cart-Token received from init response. Global wooCartToken remains:', wooCartToken);
                 }
 
-                if (initData.nonce && initData.nonce !== wooApiNonce) {
-                    wooApiNonce = initData.nonce;
+                if (receivedNonce) {
+                    wooApiNonce = receivedNonce;
                     localStorage.setItem('wooApiNonce', wooApiNonce);
-                    console.log('Shop: UPDATED Nonce in localStorage (from init):', wooApiNonce);
+                    console.log('Shop: UPDATED global wooApiNonce (from init):', wooApiNonce);
+                } else {
+                    console.warn('Shop: No Nonce received from init response. Global wooApiNonce remains:', wooApiNonce);
                 }
 
-                // NEW: Pass the actual tokens to updateCartCountDisplay
+                // Call updateCartCountDisplay with the *just updated* global variables
                 updateCartCountDisplay(initData.cart?.items_count || 0, wooCartToken, wooApiNonce); 
 
                 const productsResponse = await fetch(`${apiBaseUrl}/products`);
@@ -634,13 +640,20 @@
 
                 const data = await response.json();
                 const newCartToken = response.headers.get('Cart-Token') || response.headers.get('woocommerce-session') || data.cartToken;
-                if (newCartToken && newCartToken !== wooCartToken) {
+                const newNonce = data.nonce; // Get nonce from add to cart response too
+
+                if (newCartToken) {
                     wooCartToken = newCartToken;
                     localStorage.setItem('wooCartToken', wooCartToken);
-                    console.log('Shop: UPDATED Cart Token in localStorage (from add to cart):', wooCartToken);
+                    console.log('Shop: UPDATED global wooCartToken (from add to cart):', wooCartToken);
+                }
+                if (newNonce) {
+                    wooApiNonce = newNonce;
+                    localStorage.setItem('wooApiNonce', wooApiNonce);
+                    console.log('Shop: UPDATED global wooApiNonce (from add to cart):', wooApiNonce);
                 }
 
-                // NEW: Pass the actual tokens to updateCartCountDisplay
+                // Pass the *just updated* global variables to updateCartCountDisplay
                 updateCartCountDisplay(data.items_count || 0, wooCartToken, wooApiNonce); 
                 showMessage('Product added to cart!', 'success');
                 console.log('Shop: Product added to cart:', data);
@@ -658,11 +671,11 @@
 
             console.log("Shop: updateCartCountDisplay called with:");
             console.log("Shop:   count:", count);
-            console.log("Shop:   currentCartToken (passed):", currentCartToken);
-            console.log("Shop:   currentNonce (passed):", currentNonce);
+            console.log("Shop:   currentCartToken (passed to func):", currentCartToken);
+            console.log("Shop:   currentNonce (passed to func):", currentNonce);
 
             if (cartNavLink) {
-                // Use the passed arguments directly for the URL
+                // Use the passed arguments directly for the URL, ensuring they are not null/undefined
                 const tokenForUrl = currentCartToken || '';
                 const nonceForUrl = currentNonce || '';
                 cartNavLink.href = `cart.html?cartToken=${tokenForUrl}&nonce=${nonceForUrl}`;
