@@ -378,8 +378,8 @@
             <a href="about.html">About</a>
             <a href="services.html">Services</a>
             <a href="shop.html">Shop</a>
-            <a href="contact.html">Contact Us</a>
-            <a href="cart.html" class="cart-link"><i class="fas fa-shopping-cart"></i> Cart (<span id="cart-count">0</span>)</a>
+            <!-- MODIFIED: Added id for dynamic href update -->
+            <a href="cart.html" id="cartNavLink" class="cart-link"><i class="fas fa-shopping-cart"></i> Cart (<span id="cart-count">0</span>)</a>
         </div>
     </nav>
 
@@ -418,13 +418,12 @@
 
     <script>
         // Constants and State
-        // IMPORTANT: Replace with your actual Vercel proxy URL
         const apiBaseUrl = '/api'; 
         let wooCartToken = localStorage.getItem('wooCartToken') || null;
         let products = []; // Store all fetched products
         let exchangeRates = { USD: 1, ZAR: 19.00 }; // Default, will be updated by API
         let currentCurrency = localStorage.getItem('selectedCurrency') || 'USD';
-        let wooApiNonce = localStorage.getItem('wooApiNonce') || null; // NEW: Declare wooApiNonce
+        let wooApiNonce = localStorage.getItem('wooApiNonce') || null; // Declare wooApiNonce
 
         // DOM Elements
         const productListContainer = document.getElementById('product-list');
@@ -434,6 +433,7 @@
         const messageBox = document.getElementById('message-box');
         const loadingMessage = productListContainer.querySelector('.loading-message');
         const errorMessage = productListContainer.querySelector('.error-message');
+        const cartNavLink = document.getElementById('cartNavLink'); // NEW: Get cart nav link
 
         // --- Global Error Handling ---
         window.addEventListener('unhandledrejection', (event) => {
@@ -463,7 +463,6 @@
         async function fetchExchangeRates() {
             try {
                 console.log("Fetching exchange rates...");
-                // Reverted to direct fetch
                 const response = await fetch(`${apiBaseUrl}/exchange-rates`);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -472,7 +471,6 @@
                 console.log("Exchange rates fetched:", exchangeRates);
             } catch (error) {
                 console.error("Error fetching exchange rates:", error);
-                // Fallback to hardcoded rates if API fails
                 exchangeRates = { USD: 1, ZAR: 19.00 }; 
                 showMessage(`Failed to load exchange rates: ${error.message}. Using default rates.`, 'error');
             }
@@ -485,12 +483,7 @@
                 return 0;
             }
 
-            // Normalize price from WooCommerce (which often sends integers for decimals)
             const priceInBaseUnits = numericPrice / 100; 
-
-            // We are now explicitly assuming the raw price from WooCommerce is in ZAR,
-            // regardless of what product.prices?.currency_code says, because we know
-            // your products were entered in ZAR and WC doesn't re-value on base currency change.
             const sourceCurrencyForConversion = 'ZAR'; 
 
             if (!exchangeRates[sourceCurrencyForConversion]) {
@@ -502,9 +495,6 @@
                 return priceInBaseUnits; 
             }
 
-            // Calculate rate from source (ZAR) to target (currentCurrency)
-            // Example: To convert ZAR to USD: (USD_RATE / ZAR_RATE) = (1 / 17.5855)
-            // Example: To convert ZAR to ZAR: (ZAR_RATE / ZAR_RATE) = (17.5855 / 17.5855) = 1
             const rateFromSourceToTarget = exchangeRates[currentCurrency] / exchangeRates[sourceCurrencyForConversion];
             
             return (priceInBaseUnits * rateFromSourceToTarget);
@@ -559,15 +549,15 @@
                     console.log('Cart Token unchanged (received token was same as existing).');
                 }
 
-                // NEW: Store nonce from initData if available
+                // Store nonce from initData if available
                 if (initData.nonce && initData.nonce !== wooApiNonce) {
                     wooApiNonce = initData.nonce;
                     localStorage.setItem('wooApiNonce', wooApiNonce);
                     console.log('UPDATED Nonce in localStorage:', wooApiNonce);
                 }
 
-
-                updateCartCountDisplay(initData.cart?.items_count || 0);
+                // Call updateCartCountDisplay here to set the cart link href on initial load
+                updateCartCountDisplay(initData.cart?.items_count || 0); 
 
                 // Fetch products
                 const productsResponse = await fetch(`${apiBaseUrl}/products`);
@@ -601,9 +591,7 @@
                 const productCard = document.createElement('div');
                 productCard.className = 'product-card';
 
-                // Get the raw price from the product (e.g., 665000)
                 const productRawPrice = product.prices?.price || 0;
-                // Convert it to the currently selected display currency
                 const convertedPrice = convertPrice(productRawPrice, product.prices?.currency_code); 
 
                 productCard.innerHTML = `
@@ -628,8 +616,8 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Cart-Token': wooCartToken || undefined, // Send existing token
-                        'Nonce': wooApiNonce || undefined // NEW: Send nonce from frontend
+                        'Cart-Token': wooCartToken || undefined, 
+                        'Nonce': wooApiNonce || undefined // Send nonce from frontend
                     },
                     body: JSON.stringify({
                         productId: productId,
@@ -651,7 +639,7 @@
                     console.log('UPDATED Cart Token after add to cart:', wooCartToken);
                 }
 
-                updateCartCountDisplay(data.items_count || 0);
+                updateCartCountDisplay(data.items_count || 0); // Update count and link href
                 showMessage('Product added to cart!', 'success');
                 console.log('Product added to cart:', data);
 
@@ -664,12 +652,19 @@
         function updateCartCountDisplay(count) {
             cartCountSpan.textContent = count || 0;
             localStorage.setItem('wooCartCount', count || 0);
+
+            // NEW: Update the cart link with current tokens
+            if (cartNavLink) {
+                const currentCartToken = localStorage.getItem('wooCartToken') || '';
+                const currentNonce = localStorage.getItem('wooApiNonce') || '';
+                cartNavLink.href = `cart.html?cartToken=${currentCartToken}&nonce=${currentNonce}`;
+                console.log("Shop: Updated cart nav link href:", cartNavLink.href);
+            }
         }
 
         // --- Event Listeners ---
         function setupAddToCartListeners() {
             document.querySelectorAll('.add-to-cart-btn').forEach(button => {
-                // Remove existing listeners to prevent duplicates
                 const newButton = button.cloneNode(true);
                 button.parentNode.replaceChild(newButton, button);
                 newButton.addEventListener('click', () => addToCart(newButton.dataset.productId));
@@ -696,7 +691,6 @@
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {
-            // Set initial currency selector value
             currencySelect.value = currentCurrency;
             initializeShop();
         });

@@ -360,7 +360,6 @@
             <a href="about.html">About</a>
             <a href="services.html">Services</a>
             <a href="shop.html">Shop</a>
-            <a href="contact.html">Contact Us</a>
             <a href="cart.html" class="cart-link"><i class="fas fa-shopping-cart"></i> Cart (<span id="cart-count">0</span>)</a>
         </div>
     </nav>
@@ -384,14 +383,17 @@
     <script>
         // Constants and State
         const apiBaseUrl = '/api'; 
-        let wooCartToken = localStorage.getItem('wooCartToken') || null;
+        
+        // NEW: Attempt to get tokens from URL first, then localStorage
+        const urlParams = new URLSearchParams(window.location.search);
+        let wooCartToken = urlParams.get('cartToken') || localStorage.getItem('wooCartToken') || null;
+        let wooApiNonce = urlParams.get('nonce') || localStorage.getItem('wooApiNonce') || null;
+
         let exchangeRates = { USD: 1, ZAR: 19.00 }; 
         let currentCurrency = localStorage.getItem('selectedCurrency') || 'USD';
-        let wooApiNonce = localStorage.getItem('wooApiNonce') || null; // Declare wooApiNonce
-
-        // Add these console logs right after initialization to confirm values
-        console.log("Cart page initialized. wooCartToken from localStorage:", wooCartToken); 
-        console.log("Cart page initialized. wooApiNonce from localStorage:", wooApiNonce);
+        
+        console.log("Cart page initialized. wooCartToken (from URL/localStorage):", wooCartToken); 
+        console.log("Cart page initialized. wooApiNonce (from URL/localStorage):", wooApiNonce);
 
         // DOM Elements
         const cartItemsContainer = document.getElementById('cart-items');
@@ -570,12 +572,12 @@
                 }
                 // --- End Cart Token Update Logic ---
 
-                // Store nonce from responseData if available (cart endpoint also returns it)
-                if (responseData.nonce && responseData.nonce !== wooApiNonce) {
-                    wooApiNonce = responseData.nonce;
-                    localStorage.setItem('wooApiNonce', wooApiNonce);
-                    console.log('fetchAndDisplayCart: UPDATED Nonce in localStorage:', wooApiNonce);
-                }
+                // NO LONGER NEEDED HERE: Nonce is now primarily passed via URL and handled by server.js storing it.
+                // if (responseData.nonce && responseData.nonce !== wooApiNonce) {
+                //     wooApiNonce = responseData.nonce;
+                //     localStorage.setItem('wooApiNonce', wooApiNonce);
+                //     console.log('fetchAndDisplayCart: UPDATED Nonce in localStorage:', wooApiNonce);
+                // }
 
 
                 if (!cartData || !cartData.items || cartData.items.length === 0) {
