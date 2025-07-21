@@ -378,7 +378,7 @@
             <a href="about.html">About</a>
             <a href="services.html">Services</a>
             <a href="shop.html">Shop</a>
-            <!-- MODIFIED: Added id for dynamic href update -->
+            <!-- REVERTED: No more dynamic URL parameters here. Cart page will handle its own init. -->
             <a href="cart.html" id="cartNavLink" class="cart-link"><i class="fas fa-shopping-cart"></i> Cart (<span id="cart-count">0</span>)</a>
         </div>
     </nav>
@@ -420,16 +420,18 @@
         // Constants and State
         const apiBaseUrl = '/api'; 
         // Initialize these to null. They will be explicitly set by initializeShop or addToCart after API calls.
-        let wooCartToken = null; 
-        let wooApiNonce = null; 
+        // We will rely on localStorage for persistence across page loads, but the global variables
+        // will be updated directly from API responses.
+        let wooCartToken = localStorage.getItem('wooCartToken') || null; 
+        let wooApiNonce = localStorage.getItem('wooApiNonce') || null; 
 
         let products = []; 
         let exchangeRates = { USD: 1, ZAR: 19.00 }; 
         let currentCurrency = localStorage.getItem('selectedCurrency') || 'USD';
         
-        // Initial debug logs for loaded values (these will likely be null/undefined initially)
-        console.log("Shop: Initial global wooCartToken:", wooCartToken);
-        console.log("Shop: Initial global wooApiNonce:", wooApiNonce);
+        // Initial debug logs for loaded values
+        console.log("Shop: Initial global wooCartToken from localStorage:", wooCartToken);
+        console.log("Shop: Initial global wooApiNonce from localStorage:", wooApiNonce);
 
 
         // DOM Elements
@@ -517,7 +519,7 @@
             }).format(amount);
         }
 
-        // --- Cart Functions ---
+        // --- Shop Initialization and Product Display ---
         async function initializeShop() {
             loadingMessage.style.display = 'block';
             errorMessage.style.display = 'none';
@@ -529,6 +531,8 @@
                 // Always try to retrieve existing tokens from localStorage for the initial request
                 let initialCartTokenFromLS = localStorage.getItem('wooCartToken') || undefined;
                 let initialNonceFromLS = localStorage.getItem('wooApiNonce') || undefined;
+
+                console.log("Shop: initializeShop - Calling /api/init with localStorage tokens:", initialCartTokenFromLS, initialNonceFromLS);
 
                 const initResponse = await fetch(`${apiBaseUrl}/init`, {
                     method: 'GET',
@@ -568,8 +572,8 @@
                     console.warn('Shop: No valid Nonce received from init response. Keeping existing global:', wooApiNonce);
                 }
 
-                // Pass the current global values (which might still be null if init didn't provide them)
-                updateCartCountDisplay(initData.cart?.items_count || 0, wooCartToken, wooApiNonce); 
+                // Update cart count display (no longer passing tokens to this function as it's not needed for href)
+                updateCartCountDisplay(initData.cart?.items_count || 0); 
 
                 const productsResponse = await fetch(`${apiBaseUrl}/products`);
                 if (!productsResponse.ok) {
@@ -620,6 +624,7 @@
             setupAddToCartListeners();
         }
 
+        // --- Add to Cart Functionality ---
         async function addToCart(productId) {
             console.log(`Shop: Attempting to add product ${productId} to cart.`);
             try {
@@ -663,8 +668,8 @@
                     console.warn('Shop: No valid Nonce received from add to cart response. Keeping existing global:', wooApiNonce);
                 }
 
-                // Pass the current global values (which should now be valid)
-                updateCartCountDisplay(data.items_count || 0, wooCartToken, wooApiNonce); 
+                // Update cart count display (no longer passing tokens to this function)
+                updateCartCountDisplay(data.items_count || 0); 
                 showMessage('Product added to cart!', 'success');
                 console.log('Shop: Product added to cart:', data);
 
@@ -674,23 +679,15 @@
             }
         }
 
-        // MODIFIED: Accepts cartToken and nonce as arguments
-        function updateCartCountDisplay(count, currentCartToken, currentNonce) {
+        // MODIFIED: No longer accepts cartToken and nonce as arguments, as cart.html will handle its own init.
+        function updateCartCountDisplay(count) {
             cartCountSpan.textContent = count || 0;
             localStorage.setItem('wooCartCount', count || 0);
 
-            console.log("Shop: updateCartCountDisplay called with:");
-            console.log("Shop:   count:", count);
-            console.log("Shop:   currentCartToken (passed to func):", currentCartToken);
-            console.log("Shop:   currentNonce (passed to func):", currentNonce);
-
-            if (cartNavLink) {
-                // Use the passed arguments directly for the URL, ensuring they are not null/undefined
-                const tokenForUrl = currentCartToken || '';
-                const nonceForUrl = currentNonce || '';
-                cartNavLink.href = `cart.html?cartToken=${tokenForUrl}&nonce=${nonceForUrl}`;
-                console.log("Shop: Updated cart nav link href:", cartNavLink.href);
-            }
+            console.log("Shop: updateCartCountDisplay called.");
+            // The cart link is now static, so no need to build query params here.
+            // cartNavLink.href is already set to "cart.html" in the HTML.
+            console.log("Shop: Cart nav link href is static: cart.html");
         }
 
         // --- Event Listeners ---
@@ -705,9 +702,9 @@
         currencySelect.addEventListener('change', (event) => {
             currentCurrency = event.target.value;
             localStorage.setItem('selectedCurrency', currentCurrency);
-            displayProducts(products); // Re-display products with new currency
-            // Re-update cart link after currency change, using current global tokens
-            updateCartCountDisplay(parseInt(localStorage.getItem('wooCartCount') || 0), wooCartToken, wooApiNonce);
+            displayProducts(products); 
+            // Re-update cart count display (no need to pass tokens as href is static)
+            updateCartCountDisplay(parseInt(localStorage.getItem('wooCartCount') || 0));
         });
 
         filterButtons.forEach(button => {
@@ -719,8 +716,8 @@
                     product.categories.some(cat => cat.slug === category)
                 );
                 displayProducts(filteredProducts);
-                // Re-update cart link after filter change, using current global tokens
-                updateCartCountDisplay(parseInt(localStorage.getItem('wooCartCount') || 0), wooCartToken, wooApiNonce);
+                // Re-update cart count display (no need to pass tokens as href is static)
+                updateCartCountDisplay(parseInt(localStorage.getItem('wooCartCount') || 0));
             });
         });
 
