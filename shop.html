@@ -378,7 +378,7 @@
             <a href="about.html">About</a>
             <a href="services.html">Services</a>
             <a href="shop.html">Shop</a>
-            <!-- REVERTED: No more dynamic URL parameters here. Cart page will handle its own init. -->
+            <!-- IMPORTANT: This link is now STATIC. No dynamic URL parameters. -->
             <a href="cart.html" id="cartNavLink" class="cart-link"><i class="fas fa-shopping-cart"></i> Cart (<span id="cart-count">0</span>)</a>
         </div>
     </nav>
@@ -673,7 +673,8 @@
                 showMessage('Product added to cart!', 'success');
                 console.log('Shop: Product added to cart:', data);
 
-            } catch (error) {
+            }
+            catch (error) {
                 console.error('Shop: Error adding to cart:', error);
                 showMessage(`Error: ${error.message}`, 'error');
             }
