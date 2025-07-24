@@ -385,7 +385,7 @@
         const apiBaseUrl = '/api'; 
         // Initialize these to null. They will be set by the new init call on THIS page.
         let wooCartToken = null; 
-        let wooApiNonce = null;
+        let wooApiNonce = null; // Nonce will be dynamically fetched and stored here
 
         let exchangeRates = { USD: 1, ZAR: 19.00 }; 
         let currentCurrency = localStorage.getItem('selectedCurrency') || 'USD';
@@ -581,7 +581,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                         'Cart-Token': wooCartToken || undefined, // Use the token established by init
-                        'Nonce': wooApiNonce || undefined 
+                        'Nonce': wooApiNonce || undefined // Send the dynamically retrieved nonce
                     }
                 });
                 console.log(`Cart: Response status from /api/cart: ${cartResponse.status}`);
@@ -722,13 +722,15 @@
 
                 console.log("updateQuantity: Sending POST request to /api/cart/update-item");
                 console.log("updateQuantity: Using Cart-Token:", wooCartToken);
+                console.log("updateQuantity: Using Nonce:", wooApiNonce);
+
 
                 const response = await fetch(`${apiBaseUrl}/cart/update-item`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Cart-Token': wooCartToken || '',
-                        'Nonce': wooApiNonce || undefined 
+                        'Nonce': wooApiNonce || undefined // Send the dynamically retrieved nonce
                     },
                     body: JSON.stringify({
                         key: itemKey,
@@ -782,13 +784,15 @@
 
                 console.log("removeItem: Sending POST request to /api/cart/remove-item");
                 console.log("removeItem: Using Cart-Token:", wooCartToken);
+                console.log("removeItem: Using Nonce:", wooApiNonce);
+
 
                 const response = await fetch(`${apiBaseUrl}/cart/remove-item`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Cart-Token': wooCartToken || '',
-                        'Nonce': wooApiNonce || undefined 
+                        'Nonce': wooApiNonce || undefined // Send the dynamically retrieved nonce
                     },
                     body: JSON.stringify({
                         key: itemKey

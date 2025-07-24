@@ -420,9 +420,8 @@
         // Constants and State
         const apiBaseUrl = '/api'; 
         // Initialize these to null. They will be explicitly set by initializeShop or addToCart after API calls.
-        // We will rely on localStorage for persistence across page loads, but the global variables
-        // will be updated directly from API responses.
         let wooCartToken = localStorage.getItem('wooCartToken') || null; 
+        // Nonce will be dynamically fetched and stored here
         let wooApiNonce = localStorage.getItem('wooApiNonce') || null; 
 
         let products = []; 
@@ -552,10 +551,10 @@
                 const initData = await initResponse.json();
                 // Prioritize header, then body, then existing client token for cartToken
                 const receivedCartToken = initResponse.headers.get('woocommerce-session') || initResponse.headers.get('Cart-Token') || initData.cartToken;
-                // Prioritize body nonce, then header nonce
+                // Get nonce from the response body if available
                 const receivedNonce = initData.nonce || initResponse.headers.get('x-wc-store-api-nonce'); 
 
-                // Only update global variables and localStorage if a valid token/nonce is received
+                // Update global variables and localStorage with received values
                 if (receivedCartToken) { 
                     wooCartToken = receivedCartToken;
                     localStorage.setItem('wooCartToken', wooCartToken);
@@ -633,7 +632,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                         'Cart-Token': wooCartToken || undefined, 
-                        'Nonce': wooApiNonce || undefined 
+                        'Nonce': wooApiNonce || undefined // Send the dynamically retrieved nonce
                     },
                     body: JSON.stringify({
                         productId: productId,
