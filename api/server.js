@@ -13,16 +13,15 @@ app.use(express.json());
 
 // WooCommerce Store API details (replace with your actual details)
 const WOO_STORE_API_URL = process.env.WOO_STORE_API_URL || 'YOUR_WOO_STORE_API_URL'; // e.g., 'https://yourdomain.com/wp-json/wc/store'
-const WOO_STORE_API_NONCE = process.env.WOO_STORE_API_NONCE || ''; // This should be set in Vercel if required for POSTs
+const WOO_STORE_API_NONCE = process.env.WOO_STORE_API_NONCE || ''; // THIS MUST BE SET IN VERCEL WITH A VALID NONCE!
 
 // Basic validation for environment variables
 if (!WOO_STORE_API_URL || WOO_STORE_API_URL === 'YOUR_WOO_STORE_API_URL') {
     console.error('SERVER ERROR: WOO_STORE_API_URL is not set. Please set it in your environment variables or .env file.');
-    // Exit here to prevent further errors if critical config is missing
     process.exit(1);
 }
 console.log('Server: WOO_STORE_API_URL:', WOO_STORE_API_URL);
-console.log('Server: WOO_STORE_API_NONCE (from env):', WOO_STORE_API_NONCE ? 'configured' : 'not configured (empty)');
+console.log('Server: WOO_STORE_API_NONCE (from env):', WOO_STORE_API_NONCE ? 'configured' : 'NOT CONFIGURED (empty)');
 
 
 // Helper function to forward requests to WooCommerce Store API
@@ -44,16 +43,17 @@ async function forwardToWooCommerce(req, res, endpoint, method = 'GET', body = n
         console.log('Server: Forwarding existing Cart-Token:', req.headers['cart-token']);
     }
 
-    // --- CRITICAL NONCE HANDLING ---
-    // 1. Always prioritize nonce from client header
-    if (req.headers['nonce']) {
-        headers['x-wc-store-api-nonce'] = req.headers['nonce'];
-        console.log('Server: Forwarding Nonce from client:', req.headers['nonce']);
-    } 
-    // 2. If it's a POST request AND client didn't provide nonce AND WOO_STORE_API_NONCE is configured, use it
-    else if (method === 'POST' && WOO_STORE_API_NONCE && WOO_STORE_API_NONCE !== '') {
+    // --- CRITICAL NONCE HANDLING - FORCING NONCE FOR POST REQUESTS IF AVAILABLE ---
+    // If it's a POST request AND WOO_STORE_API_NONCE is configured, ALWAYS use it.
+    // This bypasses the need for the frontend to get it from /init for POSTs.
+    if (method === 'POST' && WOO_STORE_API_NONCE && WOO_STORE_API_NONCE !== '') {
         headers['x-wc-store-api-nonce'] = WOO_STORE_API_NONCE;
-        console.log('Server: Using WOO_STORE_API_NONCE from environment for POST request.');
+        console.log('Server: FORCING WOO_STORE_API_NONCE from environment for POST request.');
+    } 
+    // For GET requests, or if WOO_STORE_API_NONCE is not set, still try to forward client's nonce if present.
+    else if (req.headers['nonce']) {
+        headers['x-wc-store-api-nonce'] = req.headers['nonce'];
+        console.log('Server: Forwarding Nonce from client (for GET or if env nonce not set):', req.headers['nonce']);
     }
     // --- END CRITICAL NONCE HANDLING ---
 
@@ -111,7 +111,8 @@ app.get('/api/init', async (req, res) => {
                 'Expires': '0',
                 // Forward client's existing Cart-Token if available
                 'woocommerce-session': req.headers['cart-token'] || undefined,
-                // Do NOT send WOO_STORE_API_NONCE from env for GET /init, as it's meant to GET the nonce
+                // For GET /init, we don't force the nonce from env, as we expect WC to provide it in response.
+                // However, if client sends one, we forward it.
                 'x-wc-store-api-nonce': req.headers['nonce'] || undefined 
             }
         });
