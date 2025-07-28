@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 // WooCommerce Store API details (replace with your actual details)
-const WOO_STORE_API_URL = process.env.WOO_STORE_API_URL || 'YOUR_WOO_STORE_API_URL'; // e.g., 'https://yourdomain.com/wp-json/wc/store'
+const WOO_STORE_API_URL = process.env.WOO_STORE_API_URL || 'YOUR_WOO_STORE_API_URL';
 // WOO_STORE_API_NONCE is no longer explicitly used for injecting into outgoing requests.
 // It remains here only for logging/reference, but should NOT be relied upon for dynamic nonces.
 const WOO_STORE_API_NONCE = process.env.WOO_STORE_API_NONCE || ''; 
@@ -22,14 +22,14 @@ if (!WOO_STORE_API_URL || WOO_STORE_API_URL === 'YOUR_WOO_STORE_API_URL') {
     console.error('SERVER ERROR: WOO_STORE_API_URL is not set. Please set it in your environment variables or .env file.');
     process.exit(1);
 }
-console.log('Server: WOO_STORE_API_URL:', WOO_STORE_API_URL);
-console.log('Server: WOO_STORE_API_NONCE (from env, for reference only):', WOO_STORE_API_NONCE ? 'configured' : 'NOT CONFIGURED (empty)');
+console.log('Server Init: WOO_STORE_API_URL:', WOO_STORE_API_URL);
+console.log('Server Init: WOO_STORE_API_NONCE (from env, for reference only):', WOO_STORE_API_NONCE ? 'configured' : 'NOT CONFIGURED (empty)');
 
 
 // Helper function to forward requests to WooCommerce Store API
 async function forwardToWooCommerce(req, res, endpoint, method = 'GET', body = null) {
     const url = `${WOO_STORE_API_URL}${endpoint}`;
-    console.log(`Server: Proxying ${method} request to: ${url}`);
+    console.log(`Server Proxy: Attempting ${method} request to: ${url}`);
 
     const headers = {
         'Content-Type': 'application/json',
@@ -40,20 +40,22 @@ async function forwardToWooCommerce(req, res, endpoint, method = 'GET', body = n
     };
 
     // Forward existing Cart-Token from client if available
-    if (req.headers['cart-token']) {
-        headers['woocommerce-session'] = req.headers['cart-token'];
-        console.log('Server: Forwarding existing Cart-Token:', req.headers['cart-token']);
+    const clientCartToken = req.headers['cart-token'];
+    if (clientCartToken) {
+        headers['woocommerce-session'] = clientCartToken;
+        console.log('Server Proxy: Forwarding client Cart-Token:', clientCartToken);
+    } else {
+        console.log('Server Proxy: No client Cart-Token to forward.');
     }
 
-    // --- DYNAMIC NONCE HANDLING ---
-    // Only forward nonce if client provides it. The frontend is responsible for getting the dynamic nonce.
-    if (req.headers['nonce']) {
-        headers['x-wc-store-api-nonce'] = req.headers['nonce'];
-        console.log('Server: Forwarding Nonce from client:', req.headers['nonce']);
+    // Forward dynamic Nonce from client if available. This is the primary source.
+    const clientNonce = req.headers['nonce'];
+    if (clientNonce) {
+        headers['x-wc-store-api-nonce'] = clientNonce;
+        console.log('Server Proxy: Forwarding client Nonce:', clientNonce);
     } else {
-        console.warn('Server: No Nonce received from client for this request.');
+        console.log('Server Proxy: No client Nonce to forward.');
     }
-    // --- END DYNAMIC NONCE HANDLING ---
 
     const fetchOptions = {
         method: method,
@@ -63,30 +65,62 @@ async function forwardToWooCommerce(req, res, endpoint, method = 'GET', body = n
 
     if (body) {
         fetchOptions.body = JSON.stringify(body);
-        console.log('Server: Request body:', fetchOptions.body);
+        console.log('Server Proxy: Request body sent to WC:', fetchOptions.body);
     }
 
     try {
         const wooResponse = await fetch(url, fetchOptions);
-        console.log(`Server: WooCommerce API response status for ${endpoint}: ${wooResponse.status}`);
+        console.log(`Server Proxy: WC response status for ${endpoint}: ${wooResponse.status}`);
 
-        // Extract WooCommerce session token from response headers
+        // --- Extracting and Forwarding Cart-Token ---
         const newWooSessionToken = wooResponse.headers.get('woocommerce-session');
         if (newWooSessionToken) {
             res.setHeader('Cart-Token', newWooSessionToken);
-            console.log('Server: Received and setting new Cart-Token header:', newWooSessionToken);
+            console.log('Server Proxy: Received WC session token in header, setting Cart-Token header for client:', newWooSessionToken);
+        } else {
+            console.log('Server Proxy: No new WC session token received in headers.');
         }
 
+        // --- Extracting and Forwarding Nonce ---
         const responseBody = await wooResponse.json();
-        console.log('Server: Received WooCommerce response body:', responseBody);
+        console.log('Server Proxy: Received WC response body:', JSON.stringify(responseBody, null, 2)); // Log full body
 
-        // If the response body contains a nonce, include it in our proxy response
+        let wcNonceFromResponseBody;
         if (responseBody.nonce) {
-            console.log('Server: Received nonce in response body:', responseBody.nonce);
-            res.setHeader('Nonce', responseBody.nonce); 
+            wcNonceFromResponseBody = responseBody.nonce;
+            console.log('Server Proxy: Found nonce in WC response body:', wcNonceFromResponseBody);
+        } else {
+            console.log('Server Proxy: No nonce found in WC response body.');
         }
 
-        res.status(wooResponse.status).json(responseBody);
+        const wcNonceFromResponseHeader = wooResponse.headers.get('x-wc-store-api-nonce');
+        if (wcNonceFromResponseHeader) {
+            console.log('Server Proxy: Found nonce in WC response header (x-wc-store-api-nonce):', wcNonceFromResponseHeader);
+            // Prioritize nonce from body, but if not there, use header.
+            if (!wcNonceFromResponseBody) {
+                wcNonceFromResponseBody = wcNonceFromResponseHeader; // Use header nonce if body nonce is missing
+                console.log('Server Proxy: Using nonce from header as body nonce was missing.');
+            }
+        } else {
+            console.log('Server Proxy: No nonce found in WC response header (x-wc-store-api-nonce).');
+        }
+
+        // Set the Nonce header for the client if we found one
+        if (wcNonceFromResponseBody) {
+            res.setHeader('Nonce', wcNonceFromResponseBody);
+            console.log('Server Proxy: Setting Nonce header for client:', wcNonceFromResponseBody);
+        } else {
+            console.log('Server Proxy: No nonce to set in client response header.');
+        }
+
+        // Construct the response for the client, including cartToken and nonce in body if available
+        const clientResponseData = {
+            ...responseBody, // Include all original WC response body data
+            cartToken: newWooSessionToken || clientCartToken || responseBody.cartToken, // Best available cart token
+            nonce: wcNonceFromResponseBody || clientNonce // Best available nonce
+        };
+
+        res.status(wooResponse.status).json(clientResponseData);
 
     } catch (error) {
         console.error(`Server ERROR: Failed to forward request to WooCommerce ${endpoint}:`, error);
@@ -97,6 +131,7 @@ async function forwardToWooCommerce(req, res, endpoint, method = 'GET', body = n
 
 // Endpoint to initialize cart session and get products
 app.get('/api/init', async (req, res) => {
+    console.log('Server /api/init: Received request.');
     try {
         // Fetch cart data to get initial session and count
         const cartResponse = await fetch(`${WOO_STORE_API_URL}/cart`, {
@@ -109,27 +144,59 @@ app.get('/api/init', async (req, res) => {
                 'Expires': '0',
                 // Forward client's existing Cart-Token if available
                 'woocommerce-session': req.headers['cart-token'] || undefined,
-                // Do NOT send WOO_STORE_API_NONCE from env here. Frontend needs to get it from WC response.
-                'x-wc-store-api-nonce': req.headers['nonce'] || undefined // Only forward if client sends one
+                // Forward client's existing Nonce if available
+                'x-wc-store-api-nonce': req.headers['nonce'] || undefined 
             }
         });
 
-        console.log(`Server: /api/init - WooCommerce /cart response status: ${cartResponse.status}`);
+        console.log(`Server /api/init: WooCommerce /cart response status: ${cartResponse.status}`);
 
+        // --- Extracting and Forwarding Cart-Token ---
         const newWooSessionToken = cartResponse.headers.get('woocommerce-session');
         if (newWooSessionToken) {
             res.setHeader('Cart-Token', newWooSessionToken);
-            console.log('Server: /api/init - Set Cart-Token header from /cart response:', newWooSessionToken);
+            console.log('Server /api/init: Received WC session token in header, setting Cart-Token header for client:', newWooSessionToken);
+        } else {
+            console.log('Server /api/init: No new WC session token received in headers.');
         }
 
+        // --- Extracting and Forwarding Nonce ---
         const cartData = await cartResponse.json();
-        console.log('Server: /api/init - Received cart data from WC:', cartData);
+        console.log('Server /api/init: Received cart data from WC:', JSON.stringify(cartData, null, 2)); // Log full body
+
+        let wcNonceFromResponseBody;
+        if (cartData.nonce) {
+            wcNonceFromResponseBody = cartData.nonce;
+            console.log('Server /api/init: Found nonce in WC response body:', wcNonceFromResponseBody);
+        } else {
+            console.log('Server /api/init: No nonce found in WC response body.');
+        }
+
+        const wcNonceFromResponseHeader = cartResponse.headers.get('x-wc-store-api-nonce');
+        if (wcNonceFromResponseHeader) {
+            console.log('Server /api/init: Found nonce in WC response header (x-wc-store-api-nonce):', wcNonceFromResponseHeader);
+            // Prioritize nonce from body, but if not there, use header.
+            if (!wcNonceFromResponseBody) {
+                wcNonceFromResponseBody = wcNonceFromResponseHeader; // Use header nonce if body nonce is missing
+                console.log('Server /api/init: Using nonce from header as body nonce was missing.');
+            }
+        } else {
+            console.log('Server /api/init: No nonce found in WC response header (x-wc-store-api-nonce).');
+        }
+
+        // Set the Nonce header for the client if we found one
+        if (wcNonceFromResponseBody) {
+            res.setHeader('Nonce', wcNonceFromResponseBody);
+            console.log('Server /api/init: Setting Nonce header for client:', wcNonceFromResponseBody);
+        } else {
+            console.log('Server /api/init: No nonce to set in client response header.');
+        }
 
         // Construct the response for the client
         res.status(cartResponse.status).json({
-            cart: cartData,
-            cartToken: newWooSessionToken || req.headers['cart-token'] || cartData.cartToken, // Provide the new token or existing one
-            nonce: cartData.nonce || undefined // Provide nonce from cart data if available
+            cart: cartData.cart || cartData, // Ensure 'cart' object is returned if it's nested
+            cartToken: newWooSessionToken || req.headers['cart-token'] || cartData.cartToken, // Best available cart token
+            nonce: wcNonceFromResponseBody || req.headers['nonce'] // Best available nonce
         });
 
     } catch (error) {
@@ -173,7 +240,7 @@ app.post('/api/cart/remove-item', async (req, res) => {
 
 // Endpoint to fetch cart contents
 app.get('/api/cart', async (req, res) => {
-    await forwardToWooocommerce(req, res, '/cart');
+    await forwardToWooCommerce(req, res, '/cart');
 });
 
 // Endpoint to fetch exchange rates (example, replace with actual API if needed)
