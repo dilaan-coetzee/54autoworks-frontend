@@ -13,7 +13,9 @@ app.use(express.json());
 
 // WooCommerce Store API details (replace with your actual details)
 const WOO_STORE_API_URL = process.env.WOO_STORE_API_URL || 'YOUR_WOO_STORE_API_URL';
-const WOO_STORE_API_NONCE = process.env.WOO_STORE_API_NONCE || ''; // This should be empty in Vercel now
+// WOO_STORE_API_NONCE is no longer explicitly used for injecting into outgoing requests.
+// It remains here only for logging/reference, but should NOT be relied upon for dynamic nonces.
+const WOO_STORE_API_NONCE = process.env.WOO_STORE_API_NONCE || ''; 
 
 // Basic validation for environment variables
 if (!WOO_STORE_API_URL || WOO_STORE_API_URL === 'YOUR_WOO_STORE_API_URL') {
@@ -79,10 +81,21 @@ async function forwardToWooCommerce(req, res, endpoint, method = 'GET', body = n
             console.log('Server Proxy: No new WC session token received in headers.');
         }
 
-        // Extracting and Forwarding Nonce
         const responseBody = await wooResponse.json();
         console.log('Server Proxy: Received WC response body:', JSON.stringify(responseBody, null, 2)); // Log full body
 
+        // --- CRITICAL FIX FOR /products ENDPOINT ---
+        // If the endpoint is /products, just return the raw array.
+        // Do NOT wrap it in an object, as this causes the frontend TypeError.
+        if (endpoint === '/products') {
+            console.log('Server Proxy: Directly forwarding products array to client.');
+            res.status(wooResponse.status).json(responseBody);
+            return; // Exit function after sending response
+        }
+        // --- END CRITICAL FIX ---
+
+
+        // For other endpoints (like cart, add-item, etc.), continue wrapping to include nonce/cartToken
         let wcNonceFromResponseBody;
         if (responseBody.nonce) {
             wcNonceFromResponseBody = responseBody.nonce;
