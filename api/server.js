@@ -70,6 +70,13 @@ async function forwardToWooCommerce(req, res, endpoint, method = 'GET', body = n
     try {
         const wooResponse = await fetch(url, fetchOptions);
         console.log(`Server Proxy: WC response status for ${endpoint}: ${wooResponse.status}`);
+        
+        // --- EXTREME DEBUG LOGGING: Log ALL response headers from WooCommerce ---
+        console.log('Server Proxy: RAW WC Response Headers:');
+        for (const [key, value] of wooResponse.headers.entries()) {
+            console.log(`  ${key}: ${value}`);
+        }
+        // --- END EXTREME DEBUG LOGGING ---
 
         // Extracting and Forwarding Cart-Token
         const newWooSessionToken = wooResponse.headers.get('woocommerce-session');
@@ -151,6 +158,13 @@ app.get('/api/init', async (req, res) => {
         });
 
         console.log(`Server /api/init: WooCommerce /cart response status: ${cartResponse.status}`);
+
+        // --- EXTREME DEBUG LOGGING: Log ALL response headers from WooCommerce ---
+        console.log('Server /api/init: RAW WC Response Headers:');
+        for (const [key, value] of cartResponse.headers.entries()) {
+            console.log(`  ${key}: ${value}`);
+        }
+        // --- END EXTREME DEBUG LOGGING ---
 
         // Extracting and Forwarding Cart-Token
         const newWooSessionToken = cartResponse.headers.get('woocommerce-session');
