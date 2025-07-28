@@ -13,9 +13,7 @@ app.use(express.json());
 
 // WooCommerce Store API details (replace with your actual details)
 const WOO_STORE_API_URL = process.env.WOO_STORE_API_URL || 'YOUR_WOO_STORE_API_URL';
-// WOO_STORE_API_NONCE is no longer explicitly used for injecting into outgoing requests.
-// It remains here only for logging/reference, but should NOT be relied upon for dynamic nonces.
-const WOO_STORE_API_NONCE = process.env.WOO_STORE_API_NONCE || ''; 
+const WOO_STORE_API_NONCE = process.env.WOO_STORE_API_NONCE || ''; // This should be empty in Vercel now
 
 // Basic validation for environment variables
 if (!WOO_STORE_API_URL || WOO_STORE_API_URL === 'YOUR_WOO_STORE_API_URL') {
@@ -72,7 +70,7 @@ async function forwardToWooCommerce(req, res, endpoint, method = 'GET', body = n
         const wooResponse = await fetch(url, fetchOptions);
         console.log(`Server Proxy: WC response status for ${endpoint}: ${wooResponse.status}`);
 
-        // --- Extracting and Forwarding Cart-Token ---
+        // Extracting and Forwarding Cart-Token
         const newWooSessionToken = wooResponse.headers.get('woocommerce-session');
         if (newWooSessionToken) {
             res.setHeader('Cart-Token', newWooSessionToken);
@@ -81,7 +79,7 @@ async function forwardToWooCommerce(req, res, endpoint, method = 'GET', body = n
             console.log('Server Proxy: No new WC session token received in headers.');
         }
 
-        // --- Extracting and Forwarding Nonce ---
+        // Extracting and Forwarding Nonce
         const responseBody = await wooResponse.json();
         console.log('Server Proxy: Received WC response body:', JSON.stringify(responseBody, null, 2)); // Log full body
 
@@ -151,16 +149,16 @@ app.get('/api/init', async (req, res) => {
 
         console.log(`Server /api/init: WooCommerce /cart response status: ${cartResponse.status}`);
 
-        // --- Extracting and Forwarding Cart-Token ---
+        // Extracting and Forwarding Cart-Token
         const newWooSessionToken = cartResponse.headers.get('woocommerce-session');
         if (newWooSessionToken) {
             res.setHeader('Cart-Token', newWooSessionToken);
-            console.log('Server /api/init: Received WC session token in header, setting Cart-Token header for client:', newWooSessionToken);
+            console.log('Server /api/init: Set Cart-Token header from /cart response:', newWooSessionToken);
         } else {
             console.log('Server /api/init: No new WC session token received in headers.');
         }
 
-        // --- Extracting and Forwarding Nonce ---
+        // Extracting and Forwarding Nonce
         const cartData = await cartResponse.json();
         console.log('Server /api/init: Received cart data from WC:', JSON.stringify(cartData, null, 2)); // Log full body
 
