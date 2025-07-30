@@ -27,6 +27,7 @@ console.log('Server Init: WOO_STORE_API_NONCE (from env, should be empty for dyn
 
 // Helper function to forward requests to WooCommerce Store API
 async function forwardToWooCommerce(req, res, endpoint, method = 'GET', body = null) {
+    console.log(`Server Proxy: >>> ENTERING forwardToWooCommerce for ${endpoint} <<<`); // NEW LOG
     const url = `${WOO_STORE_API_URL}${endpoint}`;
     console.log(`Server Proxy: Attempting ${method} request to: ${url}`);
 
@@ -159,6 +160,7 @@ async function forwardToWooCommerce(req, res, endpoint, method = 'GET', body = n
 
 // Endpoint to initialize cart session and get products
 app.get('/api/init', async (req, res) => {
+    console.log('Server /api/init: >>> ENTERING /api/init <<<'); // NEW LOG
     console.log('Server /api/init: Received request.');
     try {
         // Fetch cart data to get initial session and count
