@@ -560,7 +560,8 @@
                     localStorage.setItem('wooCartToken', wooCartToken); // Store it for future use
                     console.log('Cart: UPDATED global wooCartToken (from init):', wooCartToken);
                 } else {
-                    console.warn('Cart: No valid Cart-Token received from init response. Global wooCartToken remains:', wooCartToken);
+                    console.warn('Cart: No valid Cart-Token received from init response.');
+                    console.error('Cart: Current wooCartToken after init:', wooCartToken);
                 }
 
                 if (receivedNonce) {
@@ -568,7 +569,8 @@
                     localStorage.setItem('wooApiNonce', wooApiNonce); // Store it for future use
                     console.log('Cart: UPDATED global wooApiNonce (from init):', wooApiNonce);
                 } else {
-                    console.warn('Cart: No valid Nonce received from init response. Global wooApiNonce remains:', wooApiNonce);
+                    console.warn('Cart: No valid Nonce received from init response.');
+                    console.error('Cart: Current wooApiNonce after init:', wooApiNonce);
                 }
 
                 // Now, fetch the cart using the potentially new wooCartToken and wooApiNonce
@@ -594,7 +596,7 @@
 
                 const cartDataResponse = await cartResponse.json();
                 const cartData = cartDataResponse.cart;
-                console.log("Cart: Received cartData from proxy:", cartData);
+                console.log("Cart: Received cartData from proxy:", cartDataResponse); // Log full response for debug
 
                 // Update tokens again, just in case cart endpoint provides newer ones
                 const newCartTokenFromCartHeaders = cartResponse.headers.get('woocommerce-session') || cartResponse.headers.get('Cart-Token') || cartDataResponse.cartToken;
@@ -605,14 +607,16 @@
                     localStorage.setItem('wooCartToken', wooCartToken);
                     console.log('Cart: UPDATED global wooCartToken (from cart fetch):', wooCartToken);
                 } else {
-                    console.warn('Cart: No valid Cart-Token received from cart fetch response. Keeping existing global:', wooCartToken);
+                    console.warn('Cart: No valid Cart-Token received from cart fetch response.');
+                    console.error('Cart: Current wooCartToken after cart fetch:', wooCartToken);
                 }
                 if (newNonceFromCartResponse) {
                     wooApiNonce = newNonceFromCartResponse;
                     localStorage.setItem('wooApiNonce', wooApiNonce);
                     console.log('Cart: UPDATED global wooApiNonce (from cart fetch):', wooApiNonce);
                 } else {
-                    console.warn('Cart: No valid Nonce received from cart fetch response. Keeping existing global:', wooApiNonce);
+                    console.warn('Cart: No valid Nonce received from cart fetch response.');
+                    console.error('Cart: Current wooApiNonce after cart fetch:', wooApiNonce);
                 }
 
 
@@ -705,6 +709,19 @@
 
         async function updateQuantity(itemKey, isIncrease) {
             console.log(`updateQuantity called for item ${itemKey}, isIncrease: ${isIncrease}`);
+            if (!wooCartToken) {
+                const msg = 'Cart session not established. Cannot update quantity.';
+                console.error('Cart: ' + msg);
+                showCartError(msg);
+                return;
+            }
+            if (!wooApiNonce) {
+                const msg = 'Missing valid nonce. Cannot update quantity.';
+                console.error('Cart: ' + msg);
+                showCartError(msg);
+                return;
+            }
+
             try {
                 const currentQuantity = getItemQuantity(itemKey);
                 console.log(`updateQuantity: Current quantity for ${itemKey}: ${currentQuantity}`);
@@ -729,8 +746,8 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Cart-Token': wooCartToken || '',
-                        'Nonce': wooApiNonce || undefined // Send the dynamically retrieved nonce
+                        'Cart-Token': wooCartToken,
+                        'Nonce': wooApiNonce // Send the dynamically retrieved nonce
                     },
                     body: JSON.stringify({
                         key: itemKey,
@@ -755,14 +772,16 @@
                     localStorage.setItem('wooCartToken', wooCartToken);
                     console.log('updateQuantity: UPDATED global wooCartToken (from update quantity):', wooCartToken);
                 } else {
-                     console.warn('updateQuantity: No valid Cart-Token received from update quantity response. Keeping existing global:', wooCartToken);
+                     console.warn('updateQuantity: No valid Cart-Token received from update quantity response.');
+                     console.error('Cart: Current wooCartToken after update quantity:', wooCartToken);
                 }
                 if (newNonce) {
                     wooApiNonce = newNonce;
                     localStorage.setItem('wooApiNonce', wooApiNonce);
                     console.log('updateQuantity: UPDATED global wooApiNonce (from update quantity):', wooApiNonce);
                 } else {
-                    console.warn('updateQuantity: No valid Nonce received from update quantity response. Keeping existing global:', wooApiNonce);
+                    console.warn('updateQuantity: No valid Nonce received from update quantity response.');
+                    console.error('Cart: Current wooApiNonce after update quantity:', wooApiNonce);
                 }
 
                 console.log('updateQuantity: Calling fetchAndDisplayCart after successful update. Current wooCartToken:', wooCartToken);
@@ -779,6 +798,19 @@
 
         async function removeItem(itemKey) {
             console.log(`removeItem called for item ${itemKey}`);
+            if (!wooCartToken) {
+                const msg = 'Cart session not established. Cannot remove item.';
+                console.error('Cart: ' + msg);
+                showCartError(msg);
+                return;
+            }
+            if (!wooApiNonce) {
+                const msg = 'Missing valid nonce. Cannot remove item.';
+                console.error('Cart: ' + msg);
+                showCartError(msg);
+                return;
+            }
+
             try {
                 showLoadingMessage();
 
@@ -791,8 +823,8 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Cart-Token': wooCartToken || '',
-                        'Nonce': wooApiNonce || undefined // Send the dynamically retrieved nonce
+                        'Cart-Token': wooCartToken,
+                        'Nonce': wooApiNonce // Send the dynamically retrieved nonce
                     },
                     body: JSON.stringify({
                         key: itemKey
@@ -830,14 +862,16 @@
                     localStorage.setItem('wooCartToken', wooCartToken);
                     console.log('removeItem: UPDATED global wooCartToken (from remove item):', wooCartToken);
                 } else {
-                    console.warn("removeItem: No valid Cart-Token received from remove item response. Keeping existing global:", wooCartToken);
+                    console.warn("removeItem: No valid Cart-Token received from remove item response.");
+                    console.error('Cart: Current wooCartToken after remove item:', wooCartToken);
                 }
                 if (newNonce) {
                     wooApiNonce = newNonce;
                     localStorage.setItem('wooApiNonce', wooApiNonce);
                     console.log('removeItem: UPDATED global wooApiNonce (from remove item):', wooApiNonce);
                 } else {
-                    console.warn('removeItem: No valid Nonce received from remove item response. Keeping existing global:', wooApiNonce);
+                    console.warn('removeItem: No valid Nonce received from remove item response.');
+                    console.error('Cart: Current wooApiNonce after remove item:', wooApiNonce);
                 }
 
                 console.log('removeItem: Calling fetchAndDisplayCart after successful removal.');

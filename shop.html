@@ -560,7 +560,8 @@
                     localStorage.setItem('wooCartToken', wooCartToken);
                     console.log('Shop: UPDATED global wooCartToken (from init):', wooCartToken);
                 } else {
-                    console.warn('Shop: No valid Cart-Token received from init response. Keeping existing global:', wooCartToken);
+                    console.warn('Shop: No valid Cart-Token received from init response.');
+                    console.error('Shop: Current wooCartToken after init:', wooCartToken);
                 }
 
                 if (receivedNonce) { 
@@ -568,7 +569,8 @@
                     localStorage.setItem('wooApiNonce', wooApiNonce);
                     console.log('Shop: UPDATED global wooApiNonce (from init):', wooApiNonce);
                 } else {
-                    console.warn('Shop: No valid Nonce received from init response. Keeping existing global:', wooApiNonce);
+                    console.warn('Shop: No valid Nonce received from init response.');
+                    console.error('Shop: Current wooApiNonce after init:', wooApiNonce);
                 }
 
                 // Update cart count display (no longer passing tokens to this function as it's not needed for href)
@@ -626,13 +628,26 @@
         // --- Add to Cart Functionality ---
         async function addToCart(productId) {
             console.log(`Shop: Attempting to add product ${productId} to cart.`);
+            if (!wooCartToken) {
+                const msg = 'Cart session not established. Cannot add to cart.';
+                console.error('Shop: ' + msg);
+                showMessage(`Error: ${msg}`, 'error');
+                return;
+            }
+            if (!wooApiNonce) {
+                const msg = 'Missing valid nonce. Cannot add to cart.';
+                console.error('Shop: ' + msg);
+                showMessage(`Error: ${msg}`, 'error');
+                return;
+            }
+
             try {
                 const response = await fetch(`${apiBaseUrl}/cart/add`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Cart-Token': wooCartToken || undefined, 
-                        'Nonce': wooApiNonce || undefined // Send the dynamically retrieved nonce
+                        'Cart-Token': wooCartToken, // Send the established token
+                        'Nonce': wooApiNonce // Send the established nonce
                     },
                     body: JSON.stringify({
                         productId: productId,

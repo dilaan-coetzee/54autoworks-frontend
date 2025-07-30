@@ -72,25 +72,46 @@ async function forwardToWooCommerce(req, res, endpoint, method = 'GET', body = n
         console.log(`Server Proxy: WC response status for ${endpoint}: ${wooResponse.status}`);
         
         // --- EXTREME DEBUG LOGGING: Log ALL response headers from WooCommerce ---
-        console.log('Server Proxy: RAW WC Response Headers:');
+        console.log(`Server Proxy: RAW WC Response Headers for ${endpoint}:`);
         for (const [key, value] of wooResponse.headers.entries()) {
             console.log(`  ${key}: ${value}`);
         }
         // --- END EXTREME DEBUG LOGGING ---
 
-        // Extracting and Forwarding Cart-Token
-        const newWooSessionToken = wooResponse.headers.get('woocommerce-session');
+        // --- Extracting and Forwarding Cart-Token (Prioritize woocommerce-session header, then Set-Cookie) ---
+        let newWooSessionToken = wooResponse.headers.get('woocommerce-session');
         if (newWooSessionToken) {
-            res.setHeader('Cart-Token', newWooSessionToken);
-            console.log('Server Proxy: Received WC session token in header, setting Cart-Token header for client:', newWooSessionToken);
+            console.log('Server Proxy: Found WC session token in woocommerce-session header:', newWooSessionToken);
         } else {
-            console.log('Server Proxy: No new WC session token received in headers.');
+            // If not found in direct header, check Set-Cookie headers
+            const setCookieHeaders = wooResponse.headers.raw()['set-cookie'];
+            if (setCookieHeaders && setCookieHeaders.length > 0) {
+                console.log('Server Proxy: Found Set-Cookie headers:', setCookieHeaders);
+                const wooSessionCookie = setCookieHeaders.find(cookie => cookie.includes('woocommerce-session='));
+                if (wooSessionCookie) {
+                    const sessionValueMatch = wooSessionCookie.match(/woocommerce-session=([^;]+)/);
+                    if (sessionValueMatch && sessionValueMatch[1]) {
+                        newWooSessionToken = sessionValueMatch[1];
+                        console.log('Server Proxy: Extracted WC session token from Set-Cookie:', newWooSessionToken);
+                    }
+                }
+            } else {
+                console.log('Server Proxy: No Set-Cookie headers found.');
+            }
         }
 
-        const responseBody = await wooResponse.json();
-        console.log('Server Proxy: Received WC response body:', JSON.stringify(responseBody, null, 2)); // Log full body
+        if (newWooSessionToken) {
+            res.setHeader('Cart-Token', newWooSessionToken);
+            console.log('Server Proxy: Setting Cart-Token header for client:', newWooSessionToken);
+        } else {
+            console.log('Server Proxy: No new WC session token to set for client.');
+        }
+        // --- End Cart-Token Extraction ---
 
-        // --- Nonce Extraction Logic (Prioritize header, then body) ---
+        const responseBody = await wooResponse.json();
+        console.log(`Server Proxy: Received WC response body for ${endpoint}:`, JSON.stringify(responseBody, null, 2)); // Log full body
+
+        // --- Nonce Extraction Logic (Prioritize x-wc-store-api-nonce header, then nonce in body) ---
         let wcNonceToForward = wooResponse.headers.get('x-wc-store-api-nonce');
         if (wcNonceToForward) {
             console.log('Server Proxy: Found nonce in WC response header (x-wc-store-api-nonce):', wcNonceToForward);
@@ -110,7 +131,7 @@ async function forwardToWooCommerce(req, res, endpoint, method = 'GET', body = n
         }
         // --- End Nonce Extraction Logic ---
 
-        // --- CRITICAL FIX FOR /products ENDPOINT ---
+        // --- CRITICAL FIX FOR /products ENDPOINT (already implemented, re-confirming) ---
         // If the endpoint is /products, just return the raw array.
         // Do NOT wrap it in an object, as this causes the frontend TypeError.
         if (endpoint === '/products') {
@@ -119,7 +140,6 @@ async function forwardToWooCommerce(req, res, endpoint, method = 'GET', body = n
             return; // Exit function after sending response
         }
         // --- END CRITICAL FIX ---
-
 
         // For other endpoints (like cart, add-item, etc.), continue wrapping to include cartToken and nonce
         const clientResponseData = {
@@ -166,14 +186,35 @@ app.get('/api/init', async (req, res) => {
         }
         // --- END EXTREME DEBUG LOGGING ---
 
-        // Extracting and Forwarding Cart-Token
-        const newWooSessionToken = cartResponse.headers.get('woocommerce-session');
+        // --- Extracting and Forwarding Cart-Token (Prioritize woocommerce-session header, then Set-Cookie) ---
+        let newWooSessionToken = cartResponse.headers.get('woocommerce-session');
+        if (newWooSessionToken) {
+            console.log('Server /api/init: Found WC session token in woocommerce-session header:', newWooSessionToken);
+        } else {
+            // If not found in direct header, check Set-Cookie headers
+            const setCookieHeaders = cartResponse.headers.raw()['set-cookie'];
+            if (setCookieHeaders && setCookieHeaders.length > 0) {
+                console.log('Server /api/init: Found Set-Cookie headers:', setCookieHeaders);
+                const wooSessionCookie = setCookieHeaders.find(cookie => cookie.includes('woocommerce-session='));
+                if (wooSessionCookie) {
+                    const sessionValueMatch = wooSessionCookie.match(/woocommerce-session=([^;]+)/);
+                    if (sessionValueMatch && sessionValueMatch[1]) {
+                        newWooSessionToken = sessionValueMatch[1];
+                        console.log('Server /api/init: Extracted WC session token from Set-Cookie:', newWooSessionToken);
+                    }
+                }
+            } else {
+                console.log('Server /api/init: No Set-Cookie headers found.');
+            }
+        }
+
         if (newWooSessionToken) {
             res.setHeader('Cart-Token', newWooSessionToken);
-            console.log('Server /api/init: Set Cart-Token header from /cart response:', newWooSessionToken);
+            console.log('Server /api/init: Setting Cart-Token header for client:', newWooSessionToken);
         } else {
-            console.log('Server /api/init: No new WC session token received in headers.');
+            console.log('Server /api/init: No new WC session token to set for client.');
         }
+        // --- End Cart-Token Extraction ---
 
         // Extracting and Forwarding Nonce
         const cartData = await cartResponse.json();
