@@ -48,14 +48,18 @@ async function forwardToWooCommerce(req, res, endpoint, method = 'GET', body = n
         console.log('Server Proxy: No client Cart-Token to forward.');
     }
 
+    // --- NONCE FIX START ---
     // Forward dynamic Nonce from client if available. This is the primary source.
-    const clientNonce = req.headers['nonce'];
+    const clientNonce = req.headers['nonce']; // Node.js normalizes incoming headers to lowercase
     if (clientNonce) {
-        headers['x-wc-store-api-nonce'] = clientNonce; // Continue using x-wc-store-api-nonce for outgoing requests
-        console.log('Server Proxy: Forwarding client Nonce:', clientNonce);
+        // IMPORTANT CHANGE: Sending Nonce as X-WP-Nonce to WooCommerce for POST requests
+        // This is often required by WordPress REST API for authentication on write operations.
+        headers['X-WP-Nonce'] = clientNonce; 
+        console.log('Server Proxy: Forwarding client Nonce as X-WP-Nonce to WC:', clientNonce);
     } else {
         console.log('Server Proxy: No client Nonce to forward.');
     }
+    // --- NONCE FIX END ---
 
     const fetchOptions = {
         method: method,
@@ -122,26 +126,33 @@ async function forwardToWooCommerce(req, res, endpoint, method = 'GET', body = n
         const responseBody = await wooResponse.json();
         console.log(`Server Proxy: Received WC response body for ${endpoint}:`, JSON.stringify(responseBody, null, 2)); // Log full body
 
-        // --- Nonce Extraction Logic (Prioritize actual 'nonce' header from WC) ---
-        let wcNonceToForward = wooResponse.headers.get('nonce'); // Check for 'nonce' header first
+        // --- Nonce Extraction Logic (Prioritize 'nonce' header from WC response) ---
+        // WooCommerce sends 'nonce' in lowercase header, or potentially 'x-wc-store-api-nonce' or 'X-WP-Nonce'
+        let wcNonceToForward = wooResponse.headers.get('nonce'); // Check for 'nonce' header first (as per your logs)
         if (wcNonceToForward) {
             console.log('Server Proxy: Found nonce in WC response header ("nonce"):', wcNonceToForward);
         } else {
-            // Fallback to x-wc-store-api-nonce (less likely based on your logs)
+            // Fallback to x-wc-store-api-nonce (if WC starts sending it there)
             wcNonceToForward = wooResponse.headers.get('x-wc-store-api-nonce');
             if (wcNonceToForward) {
                 console.log('Server Proxy: Found nonce in WC response header (x-wc-store-api-nonce):', wcNonceToForward);
-            } else if (responseBody.nonce) { // Fallback to nonce in body
-                wcNonceToForward = responseBody.nonce;
-                console.log('Server Proxy: Found nonce in WC response body:', wcNonceToForward);
             } else {
-                console.log('Server Proxy: No nonce found in WC response header or body.');
+                // Fallback to X-WP-Nonce (if WC sends it there in response)
+                wcNonceToForward = wooResponse.headers.get('x-wp-nonce');
+                if (wcNonceToForward) {
+                    console.log('Server Proxy: Found nonce in WC response header (X-WP-Nonce):', wcNonceToForward);
+                } else if (responseBody.nonce) { // Fallback to nonce in body
+                    wcNonceToForward = responseBody.nonce;
+                    console.log('Server Proxy: Found nonce in WC response body:', wcNonceToForward);
+                } else {
+                    console.log('Server Proxy: No nonce found in WC response header or body.');
+                }
             }
         }
 
         // Set the Nonce header for the client if we found one
         if (wcNonceToForward) {
-            res.setHeader('Nonce', wcNonceToForward);
+            res.setHeader('Nonce', wcNonceToForward); // Frontend still expects 'Nonce'
             console.log('Server Proxy: Setting Nonce header for client:', wcNonceToForward);
         } else {
             console.log('Server Proxy: No nonce to set in client response header.');
@@ -191,7 +202,7 @@ app.get('/api/init', async (req, res) => {
                 // Forward client's existing Cart-Token if available
                 'woocommerce-session': req.headers['cart-token'] || undefined,
                 // Forward client's existing Nonce if available
-                'x-wc-store-api-nonce': req.headers['nonce'] || undefined 
+                'X-WP-Nonce': req.headers['nonce'] || undefined // Also send X-WP-Nonce for init
             }
         });
 
@@ -248,19 +259,24 @@ app.get('/api/init', async (req, res) => {
         const cartData = await cartResponse.json();
         console.log('Server /api/init: Received cart data from WC:', JSON.stringify(cartData, null, 2)); // Log full body
 
-        let wcNonceToForward = cartResponse.headers.get('nonce'); // Check for 'nonce' header first
+        // Prioritize 'nonce' header, then 'x-wc-store-api-nonce', then 'X-WP-Nonce', then body
+        let wcNonceToForward = cartResponse.headers.get('nonce'); // Check for 'nonce' header first (as per your logs)
         if (wcNonceToForward) {
             console.log('Server /api/init: Found nonce in WC response header ("nonce"):', wcNonceToForward);
         } else {
-            // Fallback to x-wc-store-api-nonce (less likely based on your logs)
             wcNonceToForward = cartResponse.headers.get('x-wc-store-api-nonce');
             if (wcNonceToForward) {
                 console.log('Server /api/init: Found nonce in WC response header (x-wc-store-api-nonce):', wcNonceToForward);
-            } else if (cartData.nonce) { // Fallback to nonce in body
-                wcNonceToForward = cartData.nonce;
-                console.log('Server /api/init: Found nonce in WC response body:', wcNonceToForward);
             } else {
-                console.log('Server /api/init: No nonce found in WC response header or body.');
+                wcNonceToForward = cartResponse.headers.get('x-wp-nonce');
+                if (wcNonceToForward) {
+                    console.log('Server /api/init: Found nonce in WC response header (X-WP-Nonce):', wcNonceToForward);
+                } else if (cartData.nonce) {
+                    wcNonceToForward = cartData.nonce;
+                    console.log('Server /api/init: Found nonce in WC response body:', wcNonceToForward);
+                } else {
+                    console.log('Server /api/init: No nonce found in WC response header or body.');
+                }
             }
         }
 
