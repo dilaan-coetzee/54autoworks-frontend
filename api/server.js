@@ -27,7 +27,7 @@ console.log('Server Init: WOO_STORE_API_NONCE (from env, should be empty for dyn
 
 // Helper function to forward requests to WooCommerce Store API
 async function forwardToWooCommerce(req, res, endpoint, method = 'GET', body = null) {
-    console.log(`Server Proxy: >>> ENTERING forwardToWooCommerce for ${endpoint} <<<`); // NEW LOG
+    console.log(`Server Proxy: >>> ENTERING forwardToWooCommerce for ${endpoint} <<<`);
     const url = `${WOO_STORE_API_URL}${endpoint}`;
     console.log(`Server Proxy: Attempting ${method} request to: ${url}`);
 
@@ -42,7 +42,7 @@ async function forwardToWooCommerce(req, res, endpoint, method = 'GET', body = n
     // Forward existing Cart-Token from client if available
     const clientCartToken = req.headers['cart-token'];
     if (clientCartToken) {
-        headers['woocommerce-session'] = clientCartToken;
+        headers['woocommerce-session'] = clientCartToken; // Continue using woocommerce-session for outgoing requests
         console.log('Server Proxy: Forwarding client Cart-Token:', clientCartToken);
     } else {
         console.log('Server Proxy: No client Cart-Token to forward.');
@@ -51,7 +51,7 @@ async function forwardToWooCommerce(req, res, endpoint, method = 'GET', body = n
     // Forward dynamic Nonce from client if available. This is the primary source.
     const clientNonce = req.headers['nonce'];
     if (clientNonce) {
-        headers['x-wc-store-api-nonce'] = clientNonce;
+        headers['x-wc-store-api-nonce'] = clientNonce; // Continue using x-wc-store-api-nonce for outgoing requests
         console.log('Server Proxy: Forwarding client Nonce:', clientNonce);
     } else {
         console.log('Server Proxy: No client Nonce to forward.');
@@ -79,25 +79,35 @@ async function forwardToWooCommerce(req, res, endpoint, method = 'GET', body = n
         }
         // --- END EXTREME DEBUG LOGGING ---
 
-        // --- Extracting and Forwarding Cart-Token (Prioritize woocommerce-session header, then Set-Cookie) ---
-        let newWooSessionToken = wooResponse.headers.get('woocommerce-session');
+        // --- Extracting and Forwarding Cart-Token (Prioritize actual 'cart-token' header from WC) ---
+        let newWooSessionToken = wooResponse.headers.get('cart-token'); // Check for 'cart-token' first
         if (newWooSessionToken) {
-            console.log('Server Proxy: Found WC session token in woocommerce-session header:', newWooSessionToken);
+            console.log('Server Proxy: Found WC session token in "cart-token" header:', newWooSessionToken);
         } else {
-            // If not found in direct header, check Set-Cookie headers
-            const setCookieHeaders = wooResponse.headers.raw()['set-cookie'];
-            if (setCookieHeaders && setCookieHeaders.length > 0) {
-                console.log('Server Proxy: Found Set-Cookie headers:', setCookieHeaders);
-                const wooSessionCookie = setCookieHeaders.find(cookie => cookie.includes('woocommerce-session='));
-                if (wooSessionCookie) {
-                    const sessionValueMatch = wooSessionCookie.match(/woocommerce-session=([^;]+)/);
-                    if (sessionValueMatch && sessionValueMatch[1]) {
-                        newWooSessionToken = sessionValueMatch[1];
-                        console.log('Server Proxy: Extracted WC session token from Set-Cookie:', newWooSessionToken);
-                    }
-                }
+            // Fallback to woocommerce-session (less likely based on your logs)
+            newWooSessionToken = wooResponse.headers.get('woocommerce-session');
+            if (newWooSessionToken) {
+                console.log('Server Proxy: Found WC session token in "woocommerce-session" header:', newWooSessionToken);
             } else {
-                console.log('Server Proxy: No Set-Cookie headers found.');
+                // Fallback to Set-Cookie (even less likely based on your logs)
+                const setCookieHeaders = wooResponse.headers.raw()['set-cookie'];
+                if (setCookieHeaders && setCookieHeaders.length > 0) {
+                    console.log('Server Proxy: Found Set-Cookie headers:', setCookieHeaders);
+                    const wooSessionCookie = setCookieHeaders.find(cookie => cookie.includes('woocommerce-session='));
+                    if (wooSessionCookie) {
+                        const sessionValueMatch = wooSessionCookie.match(/woocommerce-session=([^;]+)/);
+                        if (sessionValueMatch && sessionValueMatch[1]) {
+                            newWooSessionToken = sessionValueMatch[1];
+                            console.log('Server Proxy: Extracted WC session token from Set-Cookie:', newWooSessionToken);
+                        } else {
+                            console.log('Server Proxy: No woocommerce-session cookie found in Set-Cookie headers.');
+                        }
+                    } else {
+                        console.log('Server Proxy: No woocommerce-session cookie found in Set-Cookie headers.');
+                    }
+                } else {
+                    console.log('Server Proxy: No Set-Cookie headers found.');
+                }
             }
         }
 
@@ -112,15 +122,21 @@ async function forwardToWooCommerce(req, res, endpoint, method = 'GET', body = n
         const responseBody = await wooResponse.json();
         console.log(`Server Proxy: Received WC response body for ${endpoint}:`, JSON.stringify(responseBody, null, 2)); // Log full body
 
-        // --- Nonce Extraction Logic (Prioritize x-wc-store-api-nonce header, then nonce in body) ---
-        let wcNonceToForward = wooResponse.headers.get('x-wc-store-api-nonce');
+        // --- Nonce Extraction Logic (Prioritize actual 'nonce' header from WC) ---
+        let wcNonceToForward = wooResponse.headers.get('nonce'); // Check for 'nonce' header first
         if (wcNonceToForward) {
-            console.log('Server Proxy: Found nonce in WC response header (x-wc-store-api-nonce):', wcNonceToForward);
-        } else if (responseBody.nonce) {
-            wcNonceToForward = responseBody.nonce;
-            console.log('Server Proxy: Found nonce in WC response body:', wcNonceToForward);
+            console.log('Server Proxy: Found nonce in WC response header ("nonce"):', wcNonceToForward);
         } else {
-            console.log('Server Proxy: No nonce found in WC response header or body.');
+            // Fallback to x-wc-store-api-nonce (less likely based on your logs)
+            wcNonceToForward = wooResponse.headers.get('x-wc-store-api-nonce');
+            if (wcNonceToForward) {
+                console.log('Server Proxy: Found nonce in WC response header (x-wc-store-api-nonce):', wcNonceToForward);
+            } else if (responseBody.nonce) { // Fallback to nonce in body
+                wcNonceToForward = responseBody.nonce;
+                console.log('Server Proxy: Found nonce in WC response body:', wcNonceToForward);
+            } else {
+                console.log('Server Proxy: No nonce found in WC response header or body.');
+            }
         }
 
         // Set the Nonce header for the client if we found one
@@ -160,7 +176,7 @@ async function forwardToWooCommerce(req, res, endpoint, method = 'GET', body = n
 
 // Endpoint to initialize cart session and get products
 app.get('/api/init', async (req, res) => {
-    console.log('Server /api/init: >>> ENTERING /api/init <<<'); // NEW LOG
+    console.log('Server /api/init: >>> ENTERING /api/init <<<');
     console.log('Server /api/init: Received request.');
     try {
         // Fetch cart data to get initial session and count
@@ -188,25 +204,35 @@ app.get('/api/init', async (req, res) => {
         }
         // --- END EXTREME DEBUG LOGGING ---
 
-        // --- Extracting and Forwarding Cart-Token (Prioritize woocommerce-session header, then Set-Cookie) ---
-        let newWooSessionToken = cartResponse.headers.get('woocommerce-session');
+        // --- Extracting and Forwarding Cart-Token (Prioritize actual 'cart-token' header from WC) ---
+        let newWooSessionToken = cartResponse.headers.get('cart-token'); // Check for 'cart-token' first
         if (newWooSessionToken) {
-            console.log('Server /api/init: Found WC session token in woocommerce-session header:', newWooSessionToken);
+            console.log('Server /api/init: Found WC session token in "cart-token" header:', newWooSessionToken);
         } else {
-            // If not found in direct header, check Set-Cookie headers
-            const setCookieHeaders = cartResponse.headers.raw()['set-cookie'];
-            if (setCookieHeaders && setCookieHeaders.length > 0) {
-                console.log('Server /api/init: Found Set-Cookie headers:', setCookieHeaders);
-                const wooSessionCookie = setCookieHeaders.find(cookie => cookie.includes('woocommerce-session='));
-                if (wooSessionCookie) {
-                    const sessionValueMatch = wooSessionCookie.match(/woocommerce-session=([^;]+)/);
-                    if (sessionValueMatch && sessionValueMatch[1]) {
-                        newWooSessionToken = sessionValueMatch[1];
-                        console.log('Server /api/init: Extracted WC session token from Set-Cookie:', newWooSessionToken);
-                    }
-                }
+            // Fallback to woocommerce-session (less likely based on your logs)
+            newWooSessionToken = cartResponse.headers.get('woocommerce-session');
+            if (newWooSessionToken) {
+                console.log('Server /api/init: Found WC session token in "woocommerce-session" header:', newWooSessionToken);
             } else {
-                console.log('Server /api/init: No Set-Cookie headers found.');
+                // Fallback to Set-Cookie (even less likely based on your logs)
+                const setCookieHeaders = cartResponse.headers.raw()['set-cookie'];
+                if (setCookieHeaders && setCookieHeaders.length > 0) {
+                    console.log('Server /api/init: Found Set-Cookie headers:', setCookieHeaders);
+                    const wooSessionCookie = setCookieHeaders.find(cookie => cookie.includes('woocommerce-session='));
+                    if (wooSessionCookie) {
+                        const sessionValueMatch = wooSessionCookie.match(/woocommerce-session=([^;]+)/);
+                        if (sessionValueMatch && sessionValueMatch[1]) {
+                            newWooSessionToken = sessionValueMatch[1];
+                            console.log('Server /api/init: Extracted WC session token from Set-Cookie:', newWooSessionToken);
+                        } else {
+                            console.log('Server /api/init: No woocommerce-session cookie found in Set-Cookie headers.');
+                        }
+                    } else {
+                        console.log('Server /api/init: No woocommerce-session cookie found in Set-Cookie headers.');
+                    }
+                } else {
+                    console.log('Server /api/init: No Set-Cookie headers found.');
+                }
             }
         }
 
@@ -222,14 +248,20 @@ app.get('/api/init', async (req, res) => {
         const cartData = await cartResponse.json();
         console.log('Server /api/init: Received cart data from WC:', JSON.stringify(cartData, null, 2)); // Log full body
 
-        let wcNonceToForward = cartResponse.headers.get('x-wc-store-api-nonce');
+        let wcNonceToForward = cartResponse.headers.get('nonce'); // Check for 'nonce' header first
         if (wcNonceToForward) {
-            console.log('Server /api/init: Found nonce in WC response header (x-wc-store-api-nonce):', wcNonceToForward);
-        } else if (cartData.nonce) {
-            wcNonceToForward = cartData.nonce;
-            console.log('Server /api/init: Found nonce in WC response body:', wcNonceToForward);
+            console.log('Server /api/init: Found nonce in WC response header ("nonce"):', wcNonceToForward);
         } else {
-            console.log('Server /api/init: No nonce found in WC response header or body.');
+            // Fallback to x-wc-store-api-nonce (less likely based on your logs)
+            wcNonceToForward = cartResponse.headers.get('x-wc-store-api-nonce');
+            if (wcNonceToForward) {
+                console.log('Server /api/init: Found nonce in WC response header (x-wc-store-api-nonce):', wcNonceToForward);
+            } else if (cartData.nonce) { // Fallback to nonce in body
+                wcNonceToForward = cartData.nonce;
+                console.log('Server /api/init: Found nonce in WC response body:', wcNonceToForward);
+            } else {
+                console.log('Server /api/init: No nonce found in WC response header or body.');
+            }
         }
 
         // Set the Nonce header for the client if we found one
